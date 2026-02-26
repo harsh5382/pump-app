@@ -1,6 +1,6 @@
 {
   "projects": {
-    "firebase deploy --only firestore:rules": "petrol-pump-manager-40213"
+    "default": "petrol-pump-manager-40213"
   },
   "targets": {},
   "etags": {}

@@ -1,6 +1,5 @@
 import * as XLSX from "xlsx";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import { loadPdfScripts } from "./loadPdfScripts";
 
 export function exportToExcel(
   data: Record<string, unknown>[],
@@ -13,16 +12,31 @@ export function exportToExcel(
   XLSX.writeFile(wb, `${filename}.xlsx`);
 }
 
-export function exportToPdf(
+declare global {
+  interface Window {
+    jsPDF?: new () => {
+      setFontSize: (n: number) => void;
+      text: (text: string, x: number, y: number) => void;
+      autoTable: (opts: { head: string[][]; body: (string | number)[][]; startY: number }) => void;
+      save: (filename: string) => void;
+    };
+  }
+}
+
+export async function exportToPdf(
   title: string,
   headers: string[],
   rows: (string | number)[][],
   filename: string
 ) {
+  if (typeof window === "undefined") return;
+  await loadPdfScripts();
+  const jsPDF = window.jsPDF;
+  if (!jsPDF) throw new Error("jsPDF failed to load");
   const doc = new jsPDF();
   doc.setFontSize(16);
   doc.text(title, 14, 20);
-  autoTable(doc, {
+  doc.autoTable({
     head: [headers],
     body: rows,
     startY: 28,
