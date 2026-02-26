@@ -71,67 +71,70 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-sky-200 border-t-sky-600" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-        <p className="text-slate-600">{formatDate(today)}</p>
+        <h1 className="page-title">Dashboard</h1>
+        <p className="page-subtitle">{formatDate(today)}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card flex items-center gap-4">
-          <div className="rounded-full bg-amber-100 p-3">
+          <div className="rounded-2xl bg-amber-100 p-3.5 shrink-0">
             <Fuel className="h-6 w-6 text-amber-600" />
           </div>
-          <div>
-            <p className="text-sm text-slate-500">Petrol sold today</p>
-            <p className="text-xl font-bold">{formatNumber(totalPetrol)} L</p>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-500">Petrol sold today</p>
+            <p className="text-xl font-bold text-slate-800 truncate">{formatNumber(totalPetrol)} L</p>
           </div>
         </div>
         <div className="card flex items-center gap-4">
-          <div className="rounded-full bg-slate-200 p-3">
-            <Droplets className="h-6 w-6 text-slate-700" />
+          <div className="rounded-2xl bg-slate-100 p-3.5 shrink-0">
+            <Droplets className="h-6 w-6 text-slate-600" />
           </div>
-          <div>
-            <p className="text-sm text-slate-500">Diesel sold today</p>
-            <p className="text-xl font-bold">{formatNumber(totalDiesel)} L</p>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-500">Diesel sold today</p>
+            <p className="text-xl font-bold text-slate-800 truncate">{formatNumber(totalDiesel)} L</p>
           </div>
         </div>
         <div className="card flex items-center gap-4">
-          <div className="rounded-full bg-emerald-100 p-3">
+          <div className="rounded-2xl bg-emerald-100 p-3.5 shrink-0">
             <TrendingUp className="h-6 w-6 text-emerald-600" />
           </div>
-          <div>
-            <p className="text-sm text-slate-500">Total revenue</p>
-            <p className="text-xl font-bold">{formatCurrency(totalRevenue)}</p>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-500">Total revenue</p>
+            <p className="text-xl font-bold text-slate-800 truncate">{formatCurrency(totalRevenue)}</p>
           </div>
         </div>
         <div className="card flex items-center gap-4">
-          <div className="rounded-full bg-sky-100 p-3">
+          <div className="rounded-2xl bg-sky-100 p-3.5 shrink-0">
             <Wallet className="h-6 w-6 text-sky-600" />
           </div>
-          <div>
-            <p className="text-sm text-slate-500">Stock remaining</p>
-            <p className="text-xl font-bold">{formatNumber(totalStock)} L</p>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-500">Stock remaining</p>
+            <p className="text-xl font-bold text-slate-800 truncate">{formatNumber(totalStock)} L</p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
-          <h2 className="text-lg font-semibold mb-4">Today&apos;s fuel sales</h2>
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">Today&apos;s fuel sales</h2>
           {chartData.length ? (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={chartData}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(v: number) => [formatNumber(v) + " L", "Sold"]} />
-                <Bar dataKey="value" fill="#0ea5e9" radius={[4, 4, 0, 0]} name="Liters" />
+                <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
+                <YAxis stroke="#64748b" fontSize={12} />
+                <Tooltip
+                  contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}
+                  formatter={(v: number) => [formatNumber(v) + " L", "Sold"]}
+                />
+                <Bar dataKey="value" fill="#0ea5e9" radius={[6, 6, 0, 0]} name="Liters" />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -139,7 +142,7 @@ export default function Dashboard() {
           )}
         </div>
         <div className="card">
-          <h2 className="text-lg font-semibold mb-4">Stock by tank</h2>
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">Stock by tank</h2>
           {tanks.length ? (
             <ResponsiveContainer width="100%" height={240}>
               <PieChart>
@@ -157,7 +160,10 @@ export default function Dashboard() {
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v: number) => [formatNumber(v) + " L", "Stock"]} />
+                <Tooltip
+                  contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}
+                  formatter={(v: number) => [formatNumber(v) + " L", "Stock"]}
+                />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -167,26 +173,26 @@ export default function Dashboard() {
       </div>
 
       <div className="card">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Truck className="h-5 w-5" />
+        <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+          <Truck className="h-5 w-5 text-slate-600" />
           Tanker received today
         </h2>
         {deliveries.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="table-container">
+            <table className="table-default">
               <thead>
-                <tr className="border-b text-left">
-                  <th className="pb-2 font-medium">Company</th>
-                  <th className="pb-2 font-medium">Invoice</th>
-                  <th className="pb-2 font-medium">Quantity</th>
+                <tr>
+                  <th>Company</th>
+                  <th>Invoice</th>
+                  <th>Quantity</th>
                 </tr>
               </thead>
               <tbody>
                 {deliveries.map((d) => (
-                  <tr key={d.id} className="border-b border-slate-100">
-                    <td className="py-2">{d.tankerCompany}</td>
-                    <td className="py-2">{d.invoiceNumber}</td>
-                    <td className="py-2">{formatNumber(d.quantityLiters)} L</td>
+                  <tr key={d.id}>
+                    <td>{d.tankerCompany}</td>
+                    <td>{d.invoiceNumber}</td>
+                    <td>{formatNumber(d.quantityLiters)} L</td>
                   </tr>
                 ))}
               </tbody>

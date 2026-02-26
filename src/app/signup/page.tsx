@@ -8,6 +8,7 @@ import { doc, setDoc, getDocs, collection } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import type { UserProfile, UserRole } from "@/types";
+import { Fuel } from "lucide-react";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -55,12 +56,22 @@ export default function SignUpPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 p-4">
-      <div className="card w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-6">Create account</h1>
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-sky-950 p-4 sm:p-6">
+      <div className="absolute inset-0 opacity-[0.05] bg-grid-pattern-auth" aria-hidden />
+      <div className="card w-full max-w-md relative z-10 shadow-soft border-white/10 bg-white/95 backdrop-blur-sm animate-slide-up">
+        <div className="flex justify-center mb-6">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-sky-100">
+            <Fuel className="h-6 w-6 text-sky-600" />
+          </div>
+        </div>
+        <h1 className="text-xl sm:text-2xl font-bold text-center text-slate-800 mb-6">
+          Create account
+        </h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="signup-display-name" className="label">Display name</label>
+            <label htmlFor="signup-display-name" className="label">
+              Display name
+            </label>
             <input
               id="signup-display-name"
               type="text"
@@ -72,7 +83,9 @@ export default function SignUpPage() {
             />
           </div>
           <div>
-            <label htmlFor="signup-email" className="label">Email</label>
+            <label htmlFor="signup-email" className="label">
+              Email
+            </label>
             <input
               id="signup-email"
               type="email"
@@ -84,7 +97,9 @@ export default function SignUpPage() {
             />
           </div>
           <div>
-            <label htmlFor="signup-password" className="label">Password</label>
+            <label htmlFor="signup-password" className="label">
+              Password
+            </label>
             <input
               id="signup-password"
               type="password"
@@ -98,20 +113,31 @@ export default function SignUpPage() {
             />
           </div>
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</p>
+            <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+              {error}
+            </p>
           )}
-          <button type="submit" className="btn btn-primary w-full" disabled={loading}>
+          <button
+            type="submit"
+            className="btn btn-primary w-full min-h-[48px]"
+            disabled={loading}
+          >
             {loading ? "Creating account…" : "Sign up"}
           </button>
         </form>
-        <p className="mt-4 text-center text-sm text-slate-600">
+        <p className="mt-6 text-center text-sm text-slate-600">
           Already have an account?{" "}
-          <Link href="/login" className="text-sky-600 hover:underline font-medium">
+          <Link
+            href="/login"
+            className="text-sky-600 hover:text-sky-700 font-semibold hover:underline"
+          >
             Sign in
           </Link>
         </p>
         <p className="mt-2 text-center text-sm text-slate-500">
-          <Link href="/" className="text-sky-500 hover:underline">Back to home</Link>
+          <Link href="/" className="text-sky-500 hover:underline">
+            Back to home
+          </Link>
         </p>
       </div>
     </main>

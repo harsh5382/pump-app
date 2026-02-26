@@ -4,8 +4,11 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
+    // Safe when user doc doesn't exist yet (e.g. first sign-in before profile is created)
     function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : 'staff';
     }
     function isAdmin() {
       return isSignedIn() && getUserRole() == 'admin';
@@ -15,7 +18,7 @@ service cloud.firestore {
     }
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && (request.auth.uid == userId || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+      allow create: if isSignedIn() && (request.auth.uid == userId || getUserRole() == 'admin');
       allow update, delete: if isAdmin();
     }
     match /fuelTypes/{id} {
@@ -23,32 +26,41 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
     match /tanks/{id} {
-      allow read, write: if isSignedIn();
+      allow read, create: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
     match /nozzles/{id} {
-      allow read, write: if isSignedIn();
+      allow read, create: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
     match /meterReadings/{id} {
-      allow read, write: if isSignedIn();
+      allow read, create: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
     match /tankerDeliveries/{id} {
-      allow read, write: if isSignedIn();
+      allow read, create: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
     match /payments/{id} {
-      allow read, write: if isSignedIn();
+      allow read, create: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
     match /dipEntries/{id} {
-      allow read, write: if isSignedIn();
+      allow read, create: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
     match /expenses/{id} {
-      allow read, write: if isSignedIn();
+      allow read, create: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
     match /shifts/{id} {
-      allow read, write: if isSignedIn();
+      allow read, create: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
     match /notifications/{id} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
     match /auditLogs/{id} {
       allow read: if isAdmin();

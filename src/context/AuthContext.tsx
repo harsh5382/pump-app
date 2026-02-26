@@ -34,26 +34,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
+        const fallbackProfile: UserProfile = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email ?? "",
+          displayName: firebaseUser.displayName ?? firebaseUser.email?.split("@")[0] ?? "User",
+          role: "staff",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
         try {
           const profileRef = doc(db, "users", firebaseUser.uid);
           const snap = await getDoc(profileRef);
           if (snap.exists()) {
             setProfile(snap.data() as UserProfile);
           } else {
-            const now = new Date().toISOString();
-            const defaultProfile: UserProfile = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email ?? "",
-              displayName: firebaseUser.displayName ?? firebaseUser.email?.split("@")[0] ?? "User",
-              role: "staff",
-              createdAt: now,
-              updatedAt: now,
-            };
-            await setDoc(profileRef, defaultProfile);
-            setProfile(defaultProfile);
+            await setDoc(profileRef, fallbackProfile);
+            setProfile(fallbackProfile);
           }
         } catch {
-          setProfile(null);
+          // Firestore read/write failed (e.g. rules, network) – use in-memory profile so login still works
+          setProfile(fallbackProfile);
         }
       } else {
         setProfile(null);

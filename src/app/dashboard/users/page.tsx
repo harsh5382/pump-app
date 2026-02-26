@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { getUsers } from "@/lib/db";
+import { getUsers, updateUserProfile } from "@/lib/db";
 import type { UserProfile, UserRole } from "@/types";
 import { logAudit } from "@/lib/audit";
+import { Pencil, Check, X } from "lucide-react";
 
 export default function UsersPage() {
   const { profile, hasRole, createUser: authCreateUser } = useAuth();
@@ -16,8 +17,34 @@ export default function UsersPage() {
   const [role, setRole] = useState<UserRole>("staff");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [editing, setEditing] = useState<UserProfile | null>(null);
+  const [editDisplayName, setEditDisplayName] = useState("");
+  const [editRole, setEditRole] = useState<UserRole>("staff");
 
   const isAdmin = hasRole("admin");
+
+  function startEdit(u: UserProfile) {
+    setEditing(u);
+    setEditDisplayName(u.displayName);
+    setEditRole(u.role);
+  }
+
+  async function handleUpdateUser(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editing) return;
+    setSaving(true);
+    try {
+      await updateUserProfile(editing.uid, { displayName: editDisplayName.trim(), role: editRole });
+      if (profile) await logAudit(profile.uid, profile.email, "UPDATE", "user", `User: ${editing.email}`);
+      setEditing(null);
+      setUsers(await getUsers());
+      setSuccessMessage("User updated.");
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   useEffect(() => {
     if (isAdmin) getUsers().then(setUsers).finally(() => setLoading(false));
@@ -35,6 +62,8 @@ export default function UsersPage() {
       setPassword("");
       setDisplayName("");
       setUsers(await getUsers());
+      setSuccessMessage("User created successfully.");
+      setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to create user");
     } finally {
@@ -60,7 +89,12 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Users</h1>
+      <h1 className="page-title">Users</h1>
+      {successMessage && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+          {successMessage}
+        </div>
+      )}
       <div className="card">
         <h2 className="text-lg font-semibold mb-4">Add user</h2>
         <form onSubmit={handleAddUser} className="space-y-4 max-w-md">
@@ -115,24 +149,55 @@ export default function UsersPage() {
         </form>
       </div>
       <div className="card">
-        <h2 className="text-lg font-semibold mb-4">All users</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <h2 className="text-lg font-semibold text-slate-800 mb-4">All users</h2>
+        <div className="table-container">
+          <table className="table-default">
             <thead>
-              <tr className="border-b text-left">
-                <th className="pb-2 font-medium">Name</th>
-                <th className="pb-2 font-medium">Email</th>
-                <th className="pb-2 font-medium">Role</th>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th className="w-24">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
-                <tr key={u.uid} className="border-b border-slate-100">
-                  <td className="py-2">{u.displayName}</td>
-                  <td className="py-2">{u.email}</td>
-                  <td className="py-2 capitalize">{u.role}</td>
-                </tr>
-              ))}
+              {users.map((u) => {
+                const isEditingRow = editing?.uid === u.uid;
+                return (
+                  <tr key={u.uid}>
+                    {isEditingRow ? (
+                      <>
+                        <td className="align-middle">
+                          <form id={`user-edit-${u.uid}`} onSubmit={handleUpdateUser} className="min-w-0">
+                            <input className="input py-1.5 text-sm w-full min-w-0" value={editDisplayName} onChange={(e) => setEditDisplayName(e.target.value)} placeholder="Display name" required aria-label="Display name" />
+                          </form>
+                        </td>
+                        <td className="align-middle text-slate-500">{u.email}</td>
+                        <td className="align-middle">
+                          <select form={`user-edit-${u.uid}`} className="input py-1.5 text-sm w-full min-w-0" value={editRole} onChange={(e) => setEditRole(e.target.value as UserRole)} aria-label="User role">
+                            <option value="admin">Admin</option>
+                            <option value="manager">Manager</option>
+                            <option value="staff">Staff</option>
+                          </select>
+                        </td>
+                        <td className="align-middle">
+                          <button form={`user-edit-${u.uid}`} type="submit" className="p-2 rounded-lg bg-sky-600 text-white hover:bg-sky-500 disabled:opacity-50 inline-flex items-center justify-center mr-1" disabled={saving} aria-label="Save"><Check className="h-4 w-4" /></button>
+                          <button type="button" className="p-2 rounded-lg border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200 inline-flex items-center justify-center" onClick={() => setEditing(null)} aria-label="Cancel"><X className="h-4 w-4" /></button>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td>{u.displayName}</td>
+                        <td>{u.email}</td>
+                        <td className="capitalize">{u.role}</td>
+                        <td>
+                          <button type="button" onClick={() => startEdit(u)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-sky-600" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

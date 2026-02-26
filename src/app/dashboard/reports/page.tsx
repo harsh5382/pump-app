@@ -152,7 +152,7 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Reports</h1>
+      <h1 className="page-title">Reports</h1>
       <div className="card flex flex-wrap gap-4 items-end">
         <div>
           <label htmlFor="report-type" className="label">Report type</label>

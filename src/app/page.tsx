@@ -1,21 +1,31 @@
 import Link from "next/link";
+import { Fuel } from "lucide-react";
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 text-white p-4">
-      <div className="text-center max-w-lg">
-        <h1 className="text-4xl font-bold mb-2">Petrol Pump Management</h1>
-        <p className="text-slate-300 mb-8">Fuel sales, stock, meter readings & reporting</p>
-        <div className="flex gap-4 justify-center">
+    <main className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-sky-950 text-white p-4 sm:p-6">
+      {/* Subtle grid pattern */}
+      <div className="absolute inset-0 opacity-[0.06] bg-grid-pattern-hero" aria-hidden />
+      <div className="text-center max-w-lg w-full relative z-10 animate-fade-in">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 mb-6">
+          <Fuel className="h-8 w-8 text-amber-400" />
+        </div>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
+          Petrol Pump Management
+        </h1>
+        <p className="text-slate-400 mb-8 text-sm sm:text-base max-w-md mx-auto">
+          Fuel sales, stock, meter readings & reporting — all in one place.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
           <Link
             href="/login"
-            className="inline-flex items-center rounded-lg bg-sky-600 px-6 py-3 font-medium text-white hover:bg-sky-500 transition"
+            className="inline-flex items-center justify-center rounded-xl bg-sky-500 px-6 py-3.5 font-semibold text-white hover:bg-sky-400 transition-all shadow-lg shadow-sky-500/25 min-h-[48px]"
           >
             Sign In
           </Link>
           <Link
             href="/signup"
-            className="inline-flex items-center rounded-lg border border-slate-400 px-6 py-3 font-medium text-white hover:bg-slate-700 transition"
+            className="inline-flex items-center justify-center rounded-xl border-2 border-slate-500 px-6 py-3.5 font-semibold text-white hover:bg-white/10 hover:border-slate-400 transition-all min-h-[48px]"
           >
             Sign Up
           </Link>

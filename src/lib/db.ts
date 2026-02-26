@@ -41,6 +41,16 @@ export async function addFuelType(name: string, unit: string): Promise<string> {
   return ref.id;
 }
 
+export async function updateFuelType(id: string, data: { name?: string; unit?: string }): Promise<void> {
+  const payload: Record<string, unknown> = { ...data };
+  Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+  await updateDoc(doc(db, "fuelTypes", id), payload);
+}
+
+export async function deleteFuelType(id: string): Promise<void> {
+  await deleteDoc(doc(db, "fuelTypes", id));
+}
+
 // Tanks
 export async function getTanks(): Promise<Tank[]> {
   const snap = await getDocs(collection(db, "tanks"));
@@ -64,6 +74,19 @@ export async function updateTankStock(id: string, currentStockLiters: number): P
   });
 }
 
+export async function updateTank(
+  id: string,
+  data: Partial<Pick<Tank, "name" | "fuelTypeId" | "capacityLiters">>
+): Promise<void> {
+  const payload: Record<string, unknown> = { ...data, updatedAt: new Date().toISOString() };
+  Object.keys(payload).forEach((k) => payload[k] === undefined && k !== "updatedAt" && delete payload[k]);
+  await updateDoc(doc(db, "tanks", id), payload);
+}
+
+export async function deleteTank(id: string): Promise<void> {
+  await deleteDoc(doc(db, "tanks", id));
+}
+
 // Nozzles
 export async function getNozzles(): Promise<Nozzle[]> {
   const snap = await getDocs(collection(db, "nozzles"));
@@ -74,6 +97,19 @@ export async function addNozzle(data: Omit<Nozzle, "id" | "createdAt" | "updated
   const now = new Date().toISOString();
   const ref = await addDoc(collection(db, "nozzles"), { ...data, createdAt: now, updatedAt: now });
   return ref.id;
+}
+
+export async function updateNozzle(
+  id: string,
+  data: Partial<Pick<Nozzle, "machineNumber" | "fuelTypeId" | "tankId">>
+): Promise<void> {
+  const payload: Record<string, unknown> = { ...data, updatedAt: new Date().toISOString() };
+  Object.keys(payload).forEach((k) => payload[k] === undefined && k !== "updatedAt" && delete payload[k]);
+  await updateDoc(doc(db, "nozzles", id), payload);
+}
+
+export async function deleteNozzle(id: string): Promise<void> {
+  await deleteDoc(doc(db, "nozzles", id));
 }
 
 // Meter readings
@@ -124,6 +160,10 @@ export async function updateMeterReading(
   });
 }
 
+export async function deleteMeterReading(id: string): Promise<void> {
+  await deleteDoc(doc(db, "meterReadings", id));
+}
+
 // Tanker deliveries
 export async function getTankerDeliveriesByDate(date: string): Promise<TankerDelivery[]> {
   const q = query(
@@ -151,6 +191,28 @@ export async function addTankerDelivery(
   return ref.id;
 }
 
+export async function updateTankerDelivery(
+  id: string,
+  data: Partial<Pick<TankerDelivery, "tankerCompany" | "invoiceNumber" | "quantityLiters" | "tankId" | "fuelTypeId">>
+): Promise<void> {
+  const payload: Record<string, unknown> = { ...data };
+  Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+  await updateDoc(doc(db, "tankerDeliveries", id), payload);
+}
+
+export async function deleteTankerDelivery(id: string): Promise<void> {
+  const snap = await getDoc(doc(db, "tankerDeliveries", id));
+  if (snap.exists()) {
+    const d = snap.data() as TankerDelivery;
+    const tankSnap = await getDoc(doc(db, "tanks", d.tankId));
+    if (tankSnap.exists()) {
+      const tank = tankSnap.data() as Tank;
+      await updateTankStock(d.tankId, Math.max(0, tank.currentStockLiters - d.quantityLiters));
+    }
+  }
+  await deleteDoc(doc(db, "tankerDeliveries", id));
+}
+
 // Payments
 export async function getPaymentsByDate(date: string): Promise<PaymentEntry[]> {
   const q = query(
@@ -161,12 +223,28 @@ export async function getPaymentsByDate(date: string): Promise<PaymentEntry[]> {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as PaymentEntry));
 }
 
-export async function addPayment(data: Omit<PaymentEntry, "id" | "createdAt">): Promise<string> {
-  const ref = await addDoc(collection(db, "payments"), {
+export async function addPayment(data: Omit<PaymentEntry, "id" | "createdAt">): Promise<PaymentEntry> {
+  const createdAt = new Date().toISOString();
+  const payload: Record<string, unknown> = {
     ...data,
-    createdAt: new Date().toISOString(),
-  });
-  return ref.id;
+    createdAt,
+  };
+  Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+  const ref = await addDoc(collection(db, "payments"), payload);
+  return { id: ref.id, ...data, createdAt } as PaymentEntry;
+}
+
+export async function updatePayment(
+  id: string,
+  data: Partial<Pick<PaymentEntry, "paymentType" | "amount" | "notes">>
+): Promise<void> {
+  const payload: Record<string, unknown> = { ...data };
+  Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+  await updateDoc(doc(db, "payments", id), payload);
+}
+
+export async function deletePayment(id: string): Promise<void> {
+  await deleteDoc(doc(db, "payments", id));
 }
 
 // Dip entries
@@ -184,6 +262,17 @@ export async function addDipEntry(data: Omit<DipEntry, "id" | "createdAt">): Pro
     ...data,
     createdAt: new Date().toISOString(),
   })).id;
+}
+
+export async function updateDipEntry(
+  id: string,
+  data: Partial<Pick<DipEntry, "dipReading" | "actualQuantity" | "expectedQuantity" | "lossOrGain">>
+): Promise<void> {
+  await updateDoc(doc(db, "dipEntries", id), data);
+}
+
+export async function deleteDipEntry(id: string): Promise<void> {
+  await deleteDoc(doc(db, "dipEntries", id));
 }
 
 // Expenses
@@ -204,6 +293,19 @@ export async function addExpense(data: Omit<Expense, "id" | "createdAt">): Promi
   return ref.id;
 }
 
+export async function updateExpense(
+  id: string,
+  data: Partial<Pick<Expense, "date" | "category" | "amount" | "description">>
+): Promise<void> {
+  const payload: Record<string, unknown> = { ...data };
+  Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+  await updateDoc(doc(db, "expenses", id), payload);
+}
+
+export async function deleteExpense(id: string): Promise<void> {
+  await deleteDoc(doc(db, "expenses", id));
+}
+
 // Shifts
 export async function getShiftsByDate(date: string): Promise<StaffShift[]> {
   const q = query(
@@ -220,29 +322,47 @@ export async function addShift(data: Omit<StaffShift, "id" | "createdAt" | "upda
   return ref.id;
 }
 
+export async function updateShift(
+  id: string,
+  data: Partial<Pick<StaffShift, "staffName" | "date" | "shiftStart" | "shiftEnd" | "assignedNozzleIds" | "cashCollected">>
+): Promise<void> {
+  const payload: Record<string, unknown> = { ...data, updatedAt: new Date().toISOString() };
+  Object.keys(payload).forEach((k) => payload[k] === undefined && k !== "updatedAt" && delete payload[k]);
+  await updateDoc(doc(db, "shifts", id), payload);
+}
+
+export async function deleteShift(id: string): Promise<void> {
+  await deleteDoc(doc(db, "shifts", id));
+}
+
 // Users (admin)
 export async function getUsers(): Promise<UserProfile[]> {
   const snap = await getDocs(collection(db, "users"));
   return snap.docs.map((d) => ({ uid: d.id, ...d.data() } as UserProfile));
 }
 
-// Notifications
+export async function updateUserProfile(
+  uid: string,
+  data: Partial<Pick<UserProfile, "displayName" | "role">>
+): Promise<void> {
+  const payload: Record<string, unknown> = { ...data, updatedAt: new Date().toISOString() };
+  Object.keys(payload).forEach((k) => payload[k] === undefined && k !== "updatedAt" && delete payload[k]);
+  await updateDoc(doc(db, "users", uid), payload);
+}
+
+// Notifications (fetch with orderBy only to avoid composite index; filter by userId in memory)
 export async function getNotifications(userId?: string): Promise<Notification[]> {
-  let q = query(
+  const q = query(
     collection(db, "notifications"),
     orderBy("createdAt", "desc"),
     limit(50)
   );
-  if (userId) {
-    q = query(
-      collection(db, "notifications"),
-      where("userId", "in", [userId, null]),
-      orderBy("createdAt", "desc"),
-      limit(50)
-    );
-  }
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Notification));
+  let list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Notification));
+  if (userId) {
+    list = list.filter((n) => n.userId === userId || n.userId == null);
+  }
+  return list;
 }
 
 export async function addNotification(
@@ -258,6 +378,10 @@ export async function addNotification(
 
 export async function markNotificationRead(id: string): Promise<void> {
   await updateDoc(doc(db, "notifications", id), { read: true });
+}
+
+export async function deleteNotification(id: string): Promise<void> {
+  await deleteDoc(doc(db, "notifications", id));
 }
 
 // Date range: iterate days to avoid composite index

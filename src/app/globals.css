@@ -6,32 +6,73 @@
   --petrol: #eab308;
   --diesel: #1e293b;
   --accent: #0ea5e9;
+  --surface: #f8fafc;
+  --surface-elevated: #ffffff;
+  --border: #e2e8f0;
+  --muted: #64748b;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-[var(--surface)] text-slate-900 antialiased;
 }
 
 @layer components {
   .card {
-    @apply rounded-xl border border-slate-200 bg-white p-6 shadow-sm;
+    @apply rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-card;
   }
   .btn {
-    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-medium transition;
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 font-medium transition-all duration-200 text-sm sm:text-base active:scale-[0.98];
   }
   .btn-primary {
-    @apply bg-sky-600 text-white hover:bg-sky-700;
+    @apply bg-sky-600 text-white hover:bg-sky-500 shadow-sm hover:shadow;
   }
   .btn-secondary {
-    @apply bg-slate-200 text-slate-800 hover:bg-slate-300;
+    @apply bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200/80;
   }
   .btn-danger {
-    @apply bg-red-600 text-white hover:bg-red-700;
+    @apply bg-red-600 text-white hover:bg-red-500 shadow-sm;
   }
   .input {
-    @apply w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500;
+    @apply w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base min-h-[44px] sm:min-h-0
+      focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-colors;
   }
   .label {
-    @apply mb-1 block text-sm font-medium text-slate-700;
+    @apply mb-1.5 block text-sm font-medium text-slate-700;
+  }
+  .page-title {
+    @apply text-xl sm:text-2xl font-bold text-slate-800 tracking-tight;
+  }
+  .page-subtitle {
+    @apply text-slate-500 text-sm sm:text-base mt-0.5;
+  }
+  .table-container {
+    @apply overflow-x-auto -mx-1;
+  }
+  .table-default {
+    @apply w-full text-sm;
+  }
+  .table-default thead tr {
+    @apply border-b border-slate-200;
+  }
+  .table-default th {
+    @apply pb-3 pt-1 px-2 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider;
+  }
+  .table-default tbody tr {
+    @apply border-b border-slate-100 transition-colors hover:bg-slate-50/80;
+  }
+  .table-default td {
+    @apply py-3 px-2 text-slate-700;
+  }
+  .bg-grid-pattern-hero {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  .bg-grid-pattern-auth {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.15) 1px, transparent 1px);
+    background-size: 40px 40px;
   }
 }
