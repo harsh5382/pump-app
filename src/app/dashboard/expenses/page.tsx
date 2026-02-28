@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import DatePicker from "@/components/DatePicker";
+import FuelLoader from "@/components/FuelLoader";
 import { getExpensesByDate, addExpense, updateExpense, deleteExpense } from "@/lib/db";
 import type { Expense } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import { Pencil, Trash2, Check, X } from "lucide-react";
 
 const today = new Date().toISOString().split("T")[0];
@@ -34,6 +37,7 @@ export default function ExpensesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
   const [deleting, setDeleting] = useState(false);
   const isAdmin = hasRole("admin");
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   useEffect(() => {
     getExpensesByDate(date).then(setExpenses).finally(() => setLoading(false));
@@ -104,34 +108,29 @@ export default function ExpensesPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-sky-600" />
-      </div>
-    );
+    return <FuelLoader />;
   }
 
   return (
     <div className="space-y-6">
       <h1 className="page-title">Expenses</h1>
       {successMessage && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+        <div className="banner-success">
           {successMessage}
         </div>
       )}
       <div className="card">
         <label htmlFor="expense-date" className="label">Date</label>
-        <input
+        <DatePicker
           id="expense-date"
-          type="date"
-          className="input max-w-xs"
           value={date}
-          onChange={(e) => setDate(e.target.value)}
+          onChange={setDate}
           aria-label="Expense date"
+          className="max-w-xs"
         />
       </div>
       <div className="card">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">Add expense</h2>
+        <h2 className="card-header">Add expense</h2>
         <form onSubmit={handleSubmit} className="space-y-4 max-w-xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -180,68 +179,120 @@ export default function ExpensesPage() {
         </form>
       </div>
       <div className="card">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">Expenses for {formatDate(date)}</h2>
-        <p className="text-lg font-medium text-slate-700 mb-4">
+        <h2 className="card-header">Expenses for {formatDate(date)}</h2>
+        <p className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-4">
           Total: {formatCurrency(total)}
         </p>
-        <div className="table-container">
-          <table className="table-default">
-            <thead>
-              <tr>
-                <th>Category</th>
-                <th>Amount</th>
-                <th>Description</th>
-                {isAdmin && <th className="w-24">Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {expenses.map((e) => {
-                const isEditingRow = editing?.id === e.id;
-                return (
-                  <tr key={e.id}>
-                    {isEditingRow ? (
-                      <>
-                        <td className="align-middle">
-                          <form id={`expense-edit-${e.id}`} onSubmit={handleUpdate} className="min-w-0">
-                            <select className="input py-1.5 text-sm w-full min-w-0" value={editCategory} onChange={(ev) => setEditCategory(ev.target.value)} aria-label="Expense category">
-                              {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                            </select>
-                          </form>
-                        </td>
-                        <td className="align-middle">
-                          <input form={`expense-edit-${e.id}`} type="number" step="0.01" min="0" className="input py-1.5 text-sm w-full min-w-0" value={editAmount} onChange={(ev) => setEditAmount(ev.target.value)} required aria-label="Amount (₹)" />
-                        </td>
-                        <td className="align-middle">
-                          <input form={`expense-edit-${e.id}`} className="input py-1.5 text-sm w-full min-w-0" value={editDescription} onChange={(ev) => setEditDescription(ev.target.value)} aria-label="Description" placeholder="Description" />
-                        </td>
-                        {isAdmin && (
+        {isMobile ? (
+          <ul className="space-y-3 list-none p-0 m-0">
+            {expenses.map((e) => {
+              const isEditingRow = editing?.id === e.id;
+              return (
+                <li key={e.id}>
+                  {isEditingRow ? (
+                    <div className="edit-card">
+                      <p className="edit-card-title">Editing expense</p>
+                      <form id={`expense-edit-${e.id}`} onSubmit={handleUpdate} className="space-y-4">
+                        <div>
+                          <label htmlFor={`expense-edit-cat-${e.id}`} className="label">Category</label>
+                          <select id={`expense-edit-cat-${e.id}`} className="input" value={editCategory} onChange={(ev) => setEditCategory(ev.target.value)} aria-label="Expense category">
+                            {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label htmlFor={`expense-edit-amount-${e.id}`} className="label">Amount (₹)</label>
+                          <input id={`expense-edit-amount-${e.id}`} form={`expense-edit-${e.id}`} type="number" step="0.01" min="0" className="input" value={editAmount} onChange={(ev) => setEditAmount(ev.target.value)} required aria-label="Amount (₹)" />
+                        </div>
+                        <div>
+                          <label htmlFor={`expense-edit-desc-${e.id}`} className="label">Description</label>
+                          <input id={`expense-edit-desc-${e.id}`} form={`expense-edit-${e.id}`} className="input" value={editDescription} onChange={(ev) => setEditDescription(ev.target.value)} placeholder="Description" aria-label="Description" />
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                          <button form={`expense-edit-${e.id}`} type="submit" className="btn btn-primary flex-1 min-h-[48px]" disabled={saving} aria-label="Save"><Check className="h-5 w-5 sm:mr-1.5" /><span className="hidden sm:inline">{saving ? "Saving…" : "Save"}</span></button>
+                          <button type="button" className="btn btn-secondary flex-1 min-h-[48px]" onClick={() => setEditing(null)} aria-label="Cancel"><X className="h-5 w-5 sm:mr-1.5" /><span className="hidden sm:inline">Cancel</span></button>
+                        </div>
+                      </form>
+                    </div>
+                  ) : (
+                    <div className="mobile-list-card">
+                      <p className="mobile-list-card-title capitalize">{e.category.replace("_", " ")}</p>
+                      <p className="mobile-list-card-row">Amount: {formatCurrency(e.amount)}</p>
+                      <p className="mobile-list-card-row">Description: {e.description}</p>
+                      {isAdmin && (
+                        <div className="mobile-list-card-actions">
+                          <button type="button" onClick={() => startEdit(e)} className="btn btn-secondary min-h-[44px] flex-1 flex items-center justify-center gap-1.5" aria-label="Edit"><Pencil className="h-4 w-4" /><span>Edit</span></button>
+                          <button type="button" onClick={() => setDeleteTarget(e)} className="btn btn-danger min-h-[44px] flex-1 flex items-center justify-center gap-1.5" aria-label="Delete"><Trash2 className="h-4 w-4" /><span>Delete</span></button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="table-container">
+            <table className="table-default">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Amount</th>
+                  <th>Description</th>
+                  {isAdmin && <th className="w-24">Actions</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {expenses.map((e) => {
+                  const isEditingRow = editing?.id === e.id;
+                  const colSpan = isAdmin ? 4 : 3;
+                  return (
+                    <tr key={e.id}>
+                      {isEditingRow ? (
+                        <>
                           <td className="align-middle">
-                            <button form={`expense-edit-${e.id}`} type="submit" className="p-2 rounded-lg bg-sky-600 text-white hover:bg-sky-500 disabled:opacity-50 inline-flex items-center justify-center mr-1" disabled={saving} aria-label="Save"><Check className="h-4 w-4" /></button>
-                            <button type="button" className="p-2 rounded-lg border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200 inline-flex items-center justify-center" onClick={() => setEditing(null)} aria-label="Cancel"><X className="h-4 w-4" /></button>
+                            <form id={`expense-edit-${e.id}`} onSubmit={handleUpdate} className="min-w-0">
+                              <select className="input py-1.5 text-sm w-full min-w-0" value={editCategory} onChange={(ev) => setEditCategory(ev.target.value)} aria-label="Expense category">
+                                {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                              </select>
+                            </form>
                           </td>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <td className="capitalize">{e.category.replace("_", " ")}</td>
-                        <td>{formatCurrency(e.amount)}</td>
-                        <td>{e.description}</td>
-                        {isAdmin && (
-                          <td>
-                            <div className="flex gap-1">
-                              <button type="button" onClick={() => startEdit(e)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-sky-600" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
-                              <button type="button" onClick={() => setDeleteTarget(e)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-600 hover:text-red-600" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
-                            </div>
+                          <td className="align-middle">
+                            <input form={`expense-edit-${e.id}`} type="number" step="0.01" min="0" className="input py-1.5 text-sm w-full min-w-0" value={editAmount} onChange={(ev) => setEditAmount(ev.target.value)} required aria-label="Amount (₹)" />
                           </td>
-                        )}
-                      </>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                          <td className="align-middle">
+                            <input form={`expense-edit-${e.id}`} className="input py-1.5 text-sm w-full min-w-0" value={editDescription} onChange={(ev) => setEditDescription(ev.target.value)} aria-label="Description" placeholder="Description" />
+                          </td>
+                          {isAdmin && (
+                            <td className="align-middle">
+                              <div className="flex gap-2">
+                                <button form={`expense-edit-${e.id}`} type="submit" className="btn-icon-primary" disabled={saving} aria-label="Save"><Check className="h-4 w-4" /></button>
+                                <button type="button" className="btn-icon-cancel" onClick={() => setEditing(null)} aria-label="Cancel"><X className="h-4 w-4" /></button>
+                              </div>
+                            </td>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <td className="capitalize">{e.category.replace("_", " ")}</td>
+                          <td>{formatCurrency(e.amount)}</td>
+                          <td>{e.description}</td>
+                          {isAdmin && (
+                            <td>
+                              <div className="flex gap-1">
+                                <button type="button" onClick={() => startEdit(e)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-sky-600" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
+                                <button type="button" onClick={() => setDeleteTarget(e)} className="btn-icon-delete" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
+                              </div>
+                            </td>
+                          )}
+                        </>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
       <ConfirmDialog
         open={!!deleteTarget}

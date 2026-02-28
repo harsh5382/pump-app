@@ -7,6 +7,7 @@ import type { Notification } from "@/types";
 import { formatDate } from "@/lib/utils";
 import { AlertTriangle, Info, Trash2 } from "lucide-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import FuelLoader from "@/components/FuelLoader";
 
 export default function NotificationsPage() {
   const { user, hasRole } = useAuth();
@@ -40,40 +41,36 @@ export default function NotificationsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-sky-600" />
-      </div>
-    );
+    return <FuelLoader />;
   }
 
   return (
     <div className="space-y-6">
       <h1 className="page-title">Alerts & Notifications</h1>
       <div className="card">
-        <p className="text-sm text-slate-600 mb-4">
+        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
           Low stock, meter not entered today, and payment mismatch alerts appear here.
         </p>
         {notifications.length === 0 ? (
-          <p className="text-slate-500">No notifications.</p>
+          <p className="text-slate-500 dark:text-slate-400">No notifications.</p>
         ) : (
           <ul className="space-y-2">
             {notifications.map((n) => (
               <li
                 key={n.id}
                 className={`flex items-start gap-3 p-3 rounded-lg border ${
-                  n.read ? "bg-slate-50 border-slate-100" : "bg-amber-50/50 border-amber-200"
+                  n.read ? "bg-slate-50 border-slate-100 dark:bg-slate-700/40 dark:border-slate-600" : "bg-amber-50/50 border-amber-200 dark:bg-amber-900/30 dark:border-amber-700"
                 }`}
               >
                 {n.type === "payment_mismatch" || n.type === "low_stock" || n.type === "meter_not_entered" ? (
-                  <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                  <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 ) : (
-                  <Info className="h-5 w-5 text-sky-600 shrink-0 mt-0.5" />
+                  <Info className="h-5 w-5 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium">{n.title}</p>
-                  <p className="text-sm text-slate-600">{n.message}</p>
-                  <p className="text-xs text-slate-400 mt-1">{formatDate(n.createdAt)}</p>
+                  <p className="font-medium dark:text-slate-200">{n.title}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{n.message}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{formatDate(n.createdAt)}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {!n.read && (

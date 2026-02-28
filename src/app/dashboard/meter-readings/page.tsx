@@ -13,6 +13,8 @@ import {
 import type { Nozzle, FuelType, MeterReading } from "@/types";
 import { formatNumber, formatDate } from "@/lib/utils";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import DatePicker from "@/components/DatePicker";
+import FuelLoader from "@/components/FuelLoader";
 import { Trash2, Check } from "lucide-react";
 
 const today = new Date().toISOString().split("T")[0];
@@ -114,31 +116,26 @@ export default function MeterReadingsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-sky-600" />
-      </div>
-    );
+    return <FuelLoader />;
   }
 
   return (
     <div className="space-y-6">
       <h1 className="page-title">Daily Meter Readings</h1>
       {successMessage && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+        <div className="banner-success">
           {successMessage}
         </div>
       )}
       <div className="card overflow-hidden">
         <div className="mb-4">
           <label htmlFor="meter-readings-date" className="label">Date</label>
-          <input
+          <DatePicker
             id="meter-readings-date"
-            type="date"
-            className="input max-w-xs"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={setDate}
             aria-label="Reading date"
+            className="max-w-xs"
           />
         </div>
         <p className="text-sm text-slate-600 mb-4 break-words">
@@ -211,7 +208,7 @@ export default function MeterReadingsPage() {
                           <button
                             type="button"
                             onClick={() => setDeleteTarget(r)}
-                            className="p-2 rounded-lg hover:bg-red-50 text-slate-600 hover:text-red-600 shrink-0"
+                            className="btn-icon-delete p-2 shrink-0"
                             aria-label="Delete reading"
                           >
                             <Trash2 className="h-4 w-4" />

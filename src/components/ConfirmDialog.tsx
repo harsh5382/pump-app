@@ -24,17 +24,26 @@ export default function ConfirmDialog({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onCancel} aria-hidden />
       <div
-        className="relative rounded-2xl border border-slate-200 bg-white p-6 shadow-soft w-full max-w-sm animate-fade-in"
+        className="absolute inset-0 bg-black/50 dark:bg-black/70"
+        onClick={onCancel}
+        aria-hidden
+      />
+      <div
+        className="relative rounded-2xl border border-slate-200 bg-white p-6 shadow-soft w-full max-w-sm animate-fade-in dark:border-slate-600 dark:bg-slate-800"
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
       >
-        <h2 id="confirm-title" className="text-lg font-semibold text-slate-800">
+        <h2
+          id="confirm-title"
+          className="text-lg font-semibold text-slate-800 dark:text-slate-100"
+        >
           {title}
         </h2>
-        <p className="mt-2 text-sm text-slate-600">{message}</p>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+          {message}
+        </p>
         <div className="mt-6 flex gap-3 justify-end">
           <button
             type="button"
@@ -49,9 +58,7 @@ export default function ConfirmDialog({
             onClick={onConfirm}
             disabled={loading}
             className={
-              variant === "danger"
-                ? "btn btn-danger"
-                : "btn btn-primary"
+              variant === "danger" ? "btn btn-danger" : "btn btn-primary"
             }
           >
             {loading ? "Please wait…" : confirmLabel}

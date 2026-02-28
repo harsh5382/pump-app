@@ -5,6 +5,8 @@ import { useAuth } from "@/context/AuthContext";
 import { getUsers, updateUserProfile } from "@/lib/db";
 import type { UserProfile, UserRole } from "@/types";
 import { logAudit } from "@/lib/audit";
+import FuelLoader from "@/components/FuelLoader";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import { Pencil, Check, X } from "lucide-react";
 
 export default function UsersPage() {
@@ -23,6 +25,7 @@ export default function UsersPage() {
   const [editRole, setEditRole] = useState<UserRole>("staff");
 
   const isAdmin = hasRole("admin");
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   function startEdit(u: UserProfile) {
     setEditing(u);
@@ -80,18 +83,14 @@ export default function UsersPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-sky-600" />
-      </div>
-    );
+    return <FuelLoader />;
   }
 
   return (
     <div className="space-y-6">
       <h1 className="page-title">Users</h1>
       {successMessage && (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+        <div className="banner-success">
           {successMessage}
         </div>
       )}
@@ -149,23 +148,67 @@ export default function UsersPage() {
         </form>
       </div>
       <div className="card">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">All users</h2>
-        <div className="table-container">
-          <table className="table-default">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th className="w-24">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => {
-                const isEditingRow = editing?.uid === u.uid;
-                return (
-                  <tr key={u.uid}>
-                    {isEditingRow ? (
+        <h2 className="card-header">All users</h2>
+        {isMobile ? (
+          <ul className="space-y-3 list-none p-0 m-0">
+            {users.map((u) => {
+              const isEditingRow = editing?.uid === u.uid;
+              return (
+                <li key={u.uid}>
+                  {isEditingRow ? (
+                    <div className="edit-card">
+                      <p className="edit-card-title">Editing: {u.displayName}</p>
+                      <form id={`user-edit-${u.uid}`} onSubmit={handleUpdateUser} className="space-y-4">
+                        <div>
+                          <label htmlFor={`user-edit-name-${u.uid}`} className="label">Display name</label>
+                          <input id={`user-edit-name-${u.uid}`} className="input" value={editDisplayName} onChange={(e) => setEditDisplayName(e.target.value)} placeholder="Display name" required aria-label="Display name" />
+                        </div>
+                        <p className="text-sm text-slate-500">Email: {u.email}</p>
+                        <div>
+                          <label htmlFor={`user-edit-role-${u.uid}`} className="label">Role</label>
+                          <select id={`user-edit-role-${u.uid}`} form={`user-edit-${u.uid}`} className="input" value={editRole} onChange={(e) => setEditRole(e.target.value as UserRole)} aria-label="User role">
+                            <option value="admin">Admin</option>
+                            <option value="manager">Manager</option>
+                            <option value="staff">Staff</option>
+                          </select>
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                          <button form={`user-edit-${u.uid}`} type="submit" className="btn btn-primary flex-1 min-h-[48px]" disabled={saving} aria-label="Save"><Check className="h-5 w-5 sm:mr-1.5" /><span className="hidden sm:inline">{saving ? "Saving…" : "Save"}</span></button>
+                          <button type="button" className="btn btn-secondary flex-1 min-h-[48px]" onClick={() => setEditing(null)} aria-label="Cancel"><X className="h-5 w-5 sm:mr-1.5" /><span className="hidden sm:inline">Cancel</span></button>
+                        </div>
+                      </form>
+                    </div>
+                  ) : (
+                    <div className="mobile-list-card">
+                      <p className="mobile-list-card-title">{u.displayName}</p>
+                      <p className="mobile-list-card-row">Email: {u.email}</p>
+                      <p className="mobile-list-card-row">Role: <span className="capitalize">{u.role}</span></p>
+                      <div className="mobile-list-card-actions">
+                        <button type="button" onClick={() => startEdit(u)} className="btn btn-secondary min-h-[44px] flex-1 flex items-center justify-center gap-1.5" aria-label="Edit"><Pencil className="h-4 w-4" /><span>Edit</span></button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="table-container">
+            <table className="table-default">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th className="w-24">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => {
+                  const isEditingRow = editing?.uid === u.uid;
+                  return (
+                    <tr key={u.uid}>
+                      {isEditingRow ? (
                       <>
                         <td className="align-middle">
                           <form id={`user-edit-${u.uid}`} onSubmit={handleUpdateUser} className="min-w-0">
@@ -181,8 +224,10 @@ export default function UsersPage() {
                           </select>
                         </td>
                         <td className="align-middle">
-                          <button form={`user-edit-${u.uid}`} type="submit" className="p-2 rounded-lg bg-sky-600 text-white hover:bg-sky-500 disabled:opacity-50 inline-flex items-center justify-center mr-1" disabled={saving} aria-label="Save"><Check className="h-4 w-4" /></button>
-                          <button type="button" className="p-2 rounded-lg border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200 inline-flex items-center justify-center" onClick={() => setEditing(null)} aria-label="Cancel"><X className="h-4 w-4" /></button>
+                          <div className="flex gap-2">
+                            <button form={`user-edit-${u.uid}`} type="submit" className="btn-icon-primary" disabled={saving} aria-label="Save"><Check className="h-4 w-4" /></button>
+                            <button type="button" className="btn-icon-cancel" onClick={() => setEditing(null)} aria-label="Cancel"><X className="h-4 w-4" /></button>
+                          </div>
                         </td>
                       </>
                     ) : (
@@ -201,6 +246,7 @@ export default function UsersPage() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </div>
   );

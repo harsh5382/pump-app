@@ -7,6 +7,9 @@ import type { TankerDelivery, Tank, FuelType } from "@/types";
 import { formatNumber, formatDate } from "@/lib/utils";
 import { logAudit } from "@/lib/audit";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import DatePicker from "@/components/DatePicker";
+import FuelLoader from "@/components/FuelLoader";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import { Pencil, Trash2, Check, X } from "lucide-react";
 
 const today = new Date().toISOString().split("T")[0];
@@ -32,6 +35,7 @@ export default function TankerDeliveriesPage() {
   const [deleteTarget, setDeleteTarget] = useState<TankerDelivery | null>(null);
   const [deleting, setDeleting] = useState(false);
   const isAdmin = hasRole("admin");
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   useEffect(() => {
     Promise.all([getTanks(), getFuelTypes()]).then(([t, f]) => {
@@ -121,32 +125,26 @@ export default function TankerDeliveriesPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-sky-600" />
-      </div>
-    );
+    return <FuelLoader />;
   }
 
   return (
     <div className="space-y-6">
       <h1 className="page-title">Tanker Delivery Entry</h1>
       {successMessage && (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+        <div className="banner-success">
           {successMessage}
         </div>
       )}
       <div className="card">
-        <h2 className="text-lg font-semibold mb-4">Record delivery</h2>
+        <h2 className="card-header">Record delivery</h2>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
           <div>
             <label htmlFor="tanker-date" className="label">Date</label>
-            <input
+            <DatePicker
               id="tanker-date"
-              type="date"
-              className="input"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={setDate}
               aria-label="Delivery date"
             />
           </div>
@@ -217,9 +215,57 @@ export default function TankerDeliveriesPage() {
         </form>
       </div>
       <div className="card">
-        <h2 className="text-lg font-semibold mb-4">Deliveries for {formatDate(date)}</h2>
+        <h2 className="card-header">Deliveries for {formatDate(date)}</h2>
         {deliveries.length === 0 ? (
           <p className="text-slate-500">No deliveries for this date.</p>
+        ) : isMobile ? (
+          <ul className="space-y-3 list-none p-0 m-0">
+            {deliveries.map((d) => {
+              const ft = fuelTypes.find((f) => f.id === d.fuelTypeId);
+              const isEditingRow = editing?.id === d.id;
+              return (
+                <li key={d.id}>
+                  {isEditingRow ? (
+                    <div className="edit-card">
+                      <p className="edit-card-title">Editing: {d.tankerCompany}</p>
+                      <form id={`delivery-edit-${d.id}`} onSubmit={handleUpdate} className="space-y-4">
+                        <div>
+                          <label htmlFor={`delivery-edit-company-${d.id}`} className="label">Company</label>
+                          <input id={`delivery-edit-company-${d.id}`} className="input" value={editCompany} onChange={(e) => setEditCompany(e.target.value)} placeholder="Company" required aria-label="Tanker company" />
+                        </div>
+                        <div>
+                          <label htmlFor={`delivery-edit-invoice-${d.id}`} className="label">Invoice</label>
+                          <input id={`delivery-edit-invoice-${d.id}`} form={`delivery-edit-${d.id}`} className="input" value={editInvoice} onChange={(e) => setEditInvoice(e.target.value)} placeholder="Invoice" required aria-label="Invoice number" />
+                        </div>
+                        <p className="text-sm text-slate-500">Fuel: {ft?.name ?? "—"}</p>
+                        <div>
+                          <label htmlFor={`delivery-edit-qty-${d.id}`} className="label">Quantity (L)</label>
+                          <input id={`delivery-edit-qty-${d.id}`} form={`delivery-edit-${d.id}`} type="number" step="any" min="0" className="input" value={editQuantity} onChange={(e) => setEditQuantity(e.target.value)} required aria-label="Quantity (L)" />
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                          <button form={`delivery-edit-${d.id}`} type="submit" className="btn btn-primary flex-1 min-h-[48px]" disabled={saving} aria-label="Save"><Check className="h-5 w-5 sm:mr-1.5" /><span className="hidden sm:inline">{saving ? "Saving…" : "Save"}</span></button>
+                          <button type="button" className="btn btn-secondary flex-1 min-h-[48px]" onClick={() => setEditing(null)} aria-label="Cancel"><X className="h-5 w-5 sm:mr-1.5" /><span className="hidden sm:inline">Cancel</span></button>
+                        </div>
+                      </form>
+                    </div>
+                  ) : (
+                    <div className="mobile-list-card">
+                      <p className="mobile-list-card-title">{d.tankerCompany}</p>
+                      <p className="mobile-list-card-row">Invoice: {d.invoiceNumber}</p>
+                      <p className="mobile-list-card-row">Fuel: {ft?.name ?? "—"}</p>
+                      <p className="mobile-list-card-row">Quantity: {formatNumber(d.quantityLiters)} L</p>
+                      {isAdmin && (
+                        <div className="mobile-list-card-actions">
+                          <button type="button" onClick={() => startEdit(d)} className="btn btn-secondary min-h-[44px] flex-1 flex items-center justify-center gap-1.5" aria-label="Edit"><Pencil className="h-4 w-4" /><span>Edit</span></button>
+                          <button type="button" onClick={() => setDeleteTarget(d)} className="btn btn-danger min-h-[44px] flex-1 flex items-center justify-center gap-1.5" aria-label="Delete"><Trash2 className="h-4 w-4" /><span>Delete</span></button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         ) : (
           <div className="table-container">
             <table className="table-default">
@@ -254,8 +300,10 @@ export default function TankerDeliveriesPage() {
                           </td>
                           {isAdmin && (
                             <td className="align-middle">
-                              <button form={`delivery-edit-${d.id}`} type="submit" className="p-2 rounded-lg bg-sky-600 text-white hover:bg-sky-500 disabled:opacity-50 inline-flex items-center justify-center mr-1" disabled={saving} aria-label="Save"><Check className="h-4 w-4" /></button>
-                              <button type="button" className="p-2 rounded-lg border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200 inline-flex items-center justify-center" onClick={() => setEditing(null)} aria-label="Cancel"><X className="h-4 w-4" /></button>
+                              <div className="flex gap-2">
+                                <button form={`delivery-edit-${d.id}`} type="submit" className="btn-icon-primary" disabled={saving} aria-label="Save"><Check className="h-4 w-4" /></button>
+                                <button type="button" className="btn-icon-cancel" onClick={() => setEditing(null)} aria-label="Cancel"><X className="h-4 w-4" /></button>
+                              </div>
                             </td>
                           )}
                         </>
@@ -269,7 +317,7 @@ export default function TankerDeliveriesPage() {
                             <td>
                               <div className="flex gap-1">
                                 <button type="button" onClick={() => startEdit(d)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-sky-600" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
-                                <button type="button" onClick={() => setDeleteTarget(d)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-600 hover:text-red-600" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
+                                <button type="button" onClick={() => setDeleteTarget(d)} className="btn-icon-delete" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
                               </div>
                             </td>
                           )}

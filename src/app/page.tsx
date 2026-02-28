@@ -3,7 +3,7 @@ import { Fuel } from "lucide-react";
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-sky-950 text-white p-4 sm:p-6">
+    <main className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-sky-950 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950 text-white p-4 sm:p-6">
       {/* Subtle grid pattern */}
       <div className="absolute inset-0 opacity-[0.06] bg-grid-pattern-hero" aria-hidden />
       <div className="text-center max-w-lg w-full relative z-10 animate-fade-in">
@@ -13,7 +13,7 @@ export default function HomePage() {
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
           Petrol Pump Management
         </h1>
-        <p className="text-slate-400 mb-8 text-sm sm:text-base max-w-md mx-auto">
+        <p className="text-slate-400 dark:text-slate-300 mb-8 text-sm sm:text-base max-w-md mx-auto">
           Fuel sales, stock, meter readings & reporting — all in one place.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">

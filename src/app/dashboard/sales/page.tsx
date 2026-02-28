@@ -10,6 +10,8 @@ import {
 } from "@/lib/db";
 import type { MeterReading, Nozzle, FuelType, PaymentEntry } from "@/types";
 import { formatNumber, formatCurrency, formatDate } from "@/lib/utils";
+import DatePicker from "@/components/DatePicker";
+import FuelLoader from "@/components/FuelLoader";
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -51,11 +53,7 @@ export default function SalesPage() {
   const totalSoldLiters = Object.values(fuelSoldByType).reduce((a, b) => a + b, 0);
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-sky-600" />
-      </div>
-    );
+    return <FuelLoader />;
   }
 
   return (
@@ -63,18 +61,17 @@ export default function SalesPage() {
       <h1 className="page-title">Daily Sales</h1>
       <div className="card">
         <label htmlFor="sales-date" className="label">Date</label>
-        <input
+        <DatePicker
           id="sales-date"
-          type="date"
-          className="input max-w-xs"
           value={date}
-          onChange={(e) => setDate(e.target.value)}
+          onChange={setDate}
           aria-label="Sales date"
+          className="max-w-xs"
         />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="card">
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Fuel sold (from meter readings)</h2>
+          <h2 className="card-header">Fuel sold (from meter readings)</h2>
           <ul className="space-y-2">
             {Object.entries(fuelSoldByType).map(([name, liters]) => (
               <li key={name} className="flex justify-between">
@@ -88,7 +85,7 @@ export default function SalesPage() {
           </p>
         </div>
         <div className="card">
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Payments received</h2>
+          <h2 className="card-header">Payments received</h2>
           <p className="text-2xl font-bold text-sky-600">{formatCurrency(totalPayments)}</p>
           <p className="text-sm text-slate-500 mt-2">
             Daily entry should match total sale. System will warn on mismatch.
@@ -97,7 +94,7 @@ export default function SalesPage() {
       </div>
       {isAdmin && (
         <div className="card border-amber-200 bg-amber-50/50">
-          <h2 className="text-lg font-semibold text-slate-800 mb-2">Manual correction (Admin only)</h2>
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">Manual correction (Admin only)</h2>
           <p className="text-sm text-slate-600">
             Corrections can be added via API or a future admin form. Sales are auto-calculated from meter readings.
           </p>

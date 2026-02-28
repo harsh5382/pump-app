@@ -6,7 +6,10 @@ import { getTanks, getFuelTypes, addTank, updateTank, deleteTank, addDipEntry, g
 import type { Tank, FuelType, DipEntry } from "@/types";
 import { formatNumber, formatDate } from "@/lib/utils";
 import { logAudit } from "@/lib/audit";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import DatePicker from "@/components/DatePicker";
+import FuelLoader from "@/components/FuelLoader";
 import { Pencil, Trash2, Check, X } from "lucide-react";
 
 const today = new Date().toISOString().split("T")[0];
@@ -40,6 +43,7 @@ export default function TanksPage() {
   const [deleteDipTarget, setDeleteDipTarget] = useState<DipEntry | null>(null);
   const [deletingDip, setDeletingDip] = useState(false);
   const isAdmin = hasRole("admin");
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   useEffect(() => {
     Promise.all([getTanks(), getFuelTypes(), getDipEntriesByDate(dipDate)]).then(
@@ -195,23 +199,19 @@ export default function TanksPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-sky-600" />
-      </div>
-    );
+    return <FuelLoader />;
   }
 
   return (
     <div className="space-y-6">
       <h1 className="page-title">Tank Management</h1>
       {successMessage && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+        <div className="banner-success">
           {successMessage}
         </div>
       )}
       <div className="card">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">Add tank</h2>
+        <h2 className="card-header">Add tank</h2>
         {!showForm ? (
           <button type="button" className="btn btn-primary" onClick={() => setShowForm(true)}>
             Add tank
@@ -279,93 +279,123 @@ export default function TanksPage() {
       </div>
 
       <div className="card">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">Tanks</h2>
-        <div className="table-container">
-          <table className="table-default">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Fuel type</th>
-                <th>Capacity</th>
-                <th>Current stock</th>
-                {isAdmin && <th className="w-24">Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {tanks.map((t) => {
-                const ft = fuelTypes.find((f) => f.id === t.fuelTypeId);
-                const isEditing = editingTank?.id === t.id;
-                return (
-                  <tr key={t.id}>
-                    {isEditing ? (
-                      <>
-                        <td className="align-middle">
-                          <form id={`tank-edit-${t.id}`} onSubmit={handleUpdateTank} className="min-w-0">
-                            <input
-                              className="input py-1.5 text-sm w-full min-w-0"
-                              value={editName}
-                              onChange={(e) => setEditName(e.target.value)}
-                              placeholder="Name"
-                              required
-                              aria-label="Tank name"
-                            />
-                          </form>
-                        </td>
-                        <td className="align-middle">
-                          <select
-                            form={`tank-edit-${t.id}`}
-                            className="input py-1.5 text-sm w-full min-w-0"
-                            value={editFuelTypeId}
-                            onChange={(e) => setEditFuelTypeId(e.target.value)}
-                            aria-label="Fuel type"
-                          >
-                            {fuelTypes.map((f) => (
-                              <option key={f.id} value={f.id}>{f.name}</option>
-                            ))}
+        <h2 className="card-header">Tanks</h2>
+        {isMobile ? (
+          <ul className="space-y-3 list-none p-0 m-0">
+            {tanks.map((t) => {
+              const ft = fuelTypes.find((f) => f.id === t.fuelTypeId);
+              const isEditing = editingTank?.id === t.id;
+              return (
+                <li key={t.id}>
+                  {isEditing ? (
+                    <div className="edit-card">
+                      <p className="edit-card-title">Editing: {t.name}</p>
+                      <form id={`tank-edit-${t.id}`} onSubmit={handleUpdateTank} className="space-y-4">
+                        <div>
+                          <label htmlFor={`tank-edit-name-${t.id}`} className="label">Name</label>
+                          <input id={`tank-edit-name-${t.id}`} className="input" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Tank name" required aria-label="Tank name" />
+                        </div>
+                        <div>
+                          <label htmlFor={`tank-edit-fuel-${t.id}`} className="label">Fuel type</label>
+                          <select id={`tank-edit-fuel-${t.id}`} form={`tank-edit-${t.id}`} className="input" value={editFuelTypeId} onChange={(e) => setEditFuelTypeId(e.target.value)} aria-label="Fuel type">
+                            {fuelTypes.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
                           </select>
-                        </td>
-                        <td className="align-middle">
-                          <input
-                            form={`tank-edit-${t.id}`}
-                            type="number"
-                            min="0"
-                            className="input py-1.5 text-sm w-full min-w-0"
-                            value={editCapacity}
-                            onChange={(e) => setEditCapacity(e.target.value)}
-                            required
-                            aria-label="Capacity (liters)"
-                          />
-                        </td>
-                        <td className="align-middle text-slate-500">—</td>
-                        {isAdmin && (
+                        </div>
+                        <div>
+                          <label htmlFor={`tank-edit-capacity-${t.id}`} className="label">Capacity (L)</label>
+                          <input id={`tank-edit-capacity-${t.id}`} form={`tank-edit-${t.id}`} type="number" min="0" className="input" value={editCapacity} onChange={(e) => setEditCapacity(e.target.value)} required aria-label="Capacity (liters)" />
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                          <button form={`tank-edit-${t.id}`} type="submit" className="btn btn-primary flex-1 min-h-[48px]" disabled={saving} aria-label="Save"><Check className="h-5 w-5 sm:mr-1.5" /><span className="hidden sm:inline">{saving ? "Saving…" : "Save"}</span></button>
+                          <button type="button" className="btn btn-secondary flex-1 min-h-[48px]" onClick={() => setEditingTank(null)} aria-label="Cancel"><X className="h-5 w-5 sm:mr-1.5" /><span className="hidden sm:inline">Cancel</span></button>
+                        </div>
+                      </form>
+                    </div>
+                  ) : (
+                    <div className="mobile-list-card">
+                      <p className="mobile-list-card-title">{t.name}</p>
+                      <p className="mobile-list-card-row">Type: {ft?.name ?? "—"}</p>
+                      <p className="mobile-list-card-row">Capacity: {formatNumber(t.capacityLiters)} L</p>
+                      <p className="mobile-list-card-row">Stock: {formatNumber(t.currentStockLiters)} L</p>
+                      {isAdmin && (
+                        <div className="mobile-list-card-actions">
+                          <button type="button" onClick={() => startEditTank(t)} className="btn btn-secondary min-h-[44px] flex-1 flex items-center justify-center gap-1.5" aria-label="Edit"><Pencil className="h-4 w-4" /><span>Edit</span></button>
+                          <button type="button" onClick={() => setDeleteTankTarget(t)} className="btn btn-danger min-h-[44px] flex-1 flex items-center justify-center gap-1.5" aria-label="Delete"><Trash2 className="h-4 w-4" /><span>Delete</span></button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="table-container">
+            <table className="table-default">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Fuel type</th>
+                  <th>Capacity</th>
+                  <th>Current stock</th>
+                  {isAdmin && <th className="w-24">Actions</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {tanks.map((t) => {
+                  const ft = fuelTypes.find((f) => f.id === t.fuelTypeId);
+                  const isEditing = editingTank?.id === t.id;
+                  const colSpan = isAdmin ? 5 : 4;
+                  return (
+                    <tr key={t.id}>
+                      {isEditing ? (
+                        <>
                           <td className="align-middle">
-                            <button form={`tank-edit-${t.id}`} type="submit" className="p-2 rounded-lg bg-sky-600 text-white hover:bg-sky-500 disabled:opacity-50 inline-flex items-center justify-center" disabled={saving} aria-label="Save"><Check className="h-4 w-4" /></button>
-                            <button type="button" className="p-2 rounded-lg border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200 inline-flex items-center justify-center" onClick={() => setEditingTank(null)} aria-label="Cancel"><X className="h-4 w-4" /></button>
+                            <form id={`tank-edit-${t.id}`} onSubmit={handleUpdateTank} className="min-w-0">
+                              <input className="input py-1.5 text-sm w-full min-w-0" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Name" required aria-label="Tank name" />
+                            </form>
                           </td>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <td>{t.name}</td>
-                        <td>{ft?.name ?? "-"}</td>
-                        <td>{formatNumber(t.capacityLiters)} L</td>
-                        <td>{formatNumber(t.currentStockLiters)} L</td>
-                        {isAdmin && (
-                          <td>
-                            <div className="flex gap-1">
-                              <button type="button" onClick={() => startEditTank(t)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-sky-600" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
-                              <button type="button" onClick={() => setDeleteTankTarget(t)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-600 hover:text-red-600" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
-                            </div>
+                          <td className="align-middle">
+                            <select form={`tank-edit-${t.id}`} className="input py-1.5 text-sm w-full min-w-0" value={editFuelTypeId} onChange={(e) => setEditFuelTypeId(e.target.value)} aria-label="Fuel type">
+                              {fuelTypes.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                            </select>
                           </td>
-                        )}
-                      </>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                          <td className="align-middle">
+                            <input form={`tank-edit-${t.id}`} type="number" min="0" className="input py-1.5 text-sm w-full min-w-0" value={editCapacity} onChange={(e) => setEditCapacity(e.target.value)} required aria-label="Capacity (liters)" />
+                          </td>
+                          <td className="align-middle text-slate-500">—</td>
+                          {isAdmin && (
+                            <td className="align-middle">
+                              <div className="flex gap-2">
+                                <button form={`tank-edit-${t.id}`} type="submit" className="btn-icon-primary" disabled={saving} aria-label="Save"><Check className="h-4 w-4" /></button>
+                                <button type="button" className="btn-icon-cancel" onClick={() => setEditingTank(null)} aria-label="Cancel"><X className="h-4 w-4" /></button>
+                              </div>
+                            </td>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <td>{t.name}</td>
+                          <td>{ft?.name ?? "-"}</td>
+                          <td>{formatNumber(t.capacityLiters)} L</td>
+                          <td>{formatNumber(t.currentStockLiters)} L</td>
+                          {isAdmin && (
+                            <td>
+                              <div className="flex gap-1">
+                                <button type="button" onClick={() => startEditTank(t)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-sky-600 dark:hover:bg-slate-600 dark:text-slate-400 dark:hover:text-sky-400" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
+                                <button type="button" onClick={() => setDeleteTankTarget(t)} className="btn-icon-delete" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
+                              </div>
+                            </td>
+                          )}
+                        </>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
       <ConfirmDialog
         open={!!deleteTankTarget}
@@ -379,16 +409,14 @@ export default function TanksPage() {
       />
 
       <div className="card">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">Daily dip entry</h2>
+        <h2 className="card-header">Daily dip entry</h2>
         <form onSubmit={handleAddDip} className="space-y-4 max-w-md">
           <div>
             <label htmlFor="dip-date" className="label">Date</label>
-            <input
+            <DatePicker
               id="dip-date"
-              type="date"
-              className="input"
               value={dipDate}
-              onChange={(e) => setDipDate(e.target.value)}
+              onChange={setDipDate}
               aria-label="Dip entry date"
             />
           </div>
@@ -436,7 +464,7 @@ export default function TanksPage() {
           {actualQty && (
             <p className="text-sm">
               Loss/Gain:{" "}
-              <span className={lossOrGain >= 0 ? "text-green-600" : "text-red-600"}>
+              <span className={lossOrGain >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
                 {lossOrGain >= 0 ? "+" : ""}{formatNumber(lossOrGain)} L
               </span>
             </p>
@@ -448,64 +476,114 @@ export default function TanksPage() {
         {dips.length > 0 && (
           <div className="mt-6">
             <h3 className="font-medium mb-2">Dip history for {formatDate(dipDate)}</h3>
-            <table className="table-default">
-              <thead>
-                <tr>
-                  <th>Tank</th>
-                  <th>Dip</th>
-                  <th>Actual</th>
-                  <th>Loss/Gain</th>
-                  {isAdmin && <th className="w-24">Actions</th>}
-                </tr>
-              </thead>
-              <tbody>
+            {isMobile ? (
+              <ul className="space-y-3 list-none p-0 m-0">
                 {dips.map((d) => {
-                  const t = tanks.find((x) => x.id === d.tankId);
+                  const tank = tanks.find((x) => x.id === d.tankId);
                   const isEditingDipRow = editingDip?.id === d.id;
                   return (
-                    <tr key={d.id}>
+                    <li key={d.id}>
                       {isEditingDipRow ? (
-                        <>
-                          <td className="align-middle text-slate-500">{t?.name ?? "—"}</td>
-                          <td className="align-middle">
-                            <form id={`dip-edit-${d.id}`} onSubmit={handleUpdateDip} className="min-w-0">
-                              <input type="number" step="any" className="input py-1.5 text-sm w-full min-w-0" value={editDipReading} onChange={(e) => setEditDipReading(e.target.value)} placeholder="Dip" required aria-label="Dip reading" />
-                            </form>
-                          </td>
-                          <td className="align-middle">
-                            <input form={`dip-edit-${d.id}`} type="number" step="any" className="input py-1.5 text-sm w-full min-w-0" value={editActualQty} onChange={(e) => setEditActualQty(e.target.value)} placeholder="Actual L" aria-label="Actual quantity (L)" />
-                          </td>
-                          <td className="align-middle text-slate-400">—</td>
-                          {isAdmin && (
-                            <td className="align-middle">
-                              <button form={`dip-edit-${d.id}`} type="submit" className="p-2 rounded-lg bg-sky-600 text-white hover:bg-sky-500 disabled:opacity-50 inline-flex items-center justify-center mr-1" disabled={dipSaving} aria-label="Save"><Check className="h-4 w-4" /></button>
-                              <button type="button" className="p-2 rounded-lg border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200 inline-flex items-center justify-center" onClick={() => setEditingDip(null)} aria-label="Cancel"><X className="h-4 w-4" /></button>
-                            </td>
-                          )}
-                        </>
+                        <div className="edit-card">
+                          <p className="edit-card-title">Editing: {tank?.name ?? "Dip"}</p>
+                          <form id={`dip-edit-${d.id}`} onSubmit={handleUpdateDip} className="space-y-4">
+                            <div>
+                              <label htmlFor={`dip-edit-reading-${d.id}`} className="label">Dip reading</label>
+                              <input id={`dip-edit-reading-${d.id}`} type="number" step="any" className="input" value={editDipReading} onChange={(e) => setEditDipReading(e.target.value)} required aria-label="Dip reading" />
+                            </div>
+                            <div>
+                              <label htmlFor={`dip-edit-actual-${d.id}`} className="label">Actual quantity (L)</label>
+                              <input id={`dip-edit-actual-${d.id}`} form={`dip-edit-${d.id}`} type="number" step="any" className="input" value={editActualQty} onChange={(e) => setEditActualQty(e.target.value)} aria-label="Actual quantity (L)" />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                              <button form={`dip-edit-${d.id}`} type="submit" className="btn btn-primary flex-1 min-h-[48px]" disabled={dipSaving} aria-label="Save"><Check className="h-5 w-5 sm:mr-1.5" /><span className="hidden sm:inline">{dipSaving ? "Saving…" : "Save"}</span></button>
+                              <button type="button" className="btn btn-secondary flex-1 min-h-[48px]" onClick={() => setEditingDip(null)} aria-label="Cancel"><X className="h-5 w-5 sm:mr-1.5" /><span className="hidden sm:inline">Cancel</span></button>
+                            </div>
+                          </form>
+                        </div>
                       ) : (
-                        <>
-                          <td>{t?.name ?? "-"}</td>
-                          <td>{formatNumber(d.dipReading)}</td>
-                          <td>{formatNumber(d.actualQuantity)} L</td>
-                          <td className={d.lossOrGain >= 0 ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
-                            {d.lossOrGain >= 0 ? "+" : ""}{formatNumber(d.lossOrGain)} L
-                          </td>
+                        <div className="mobile-list-card">
+                          <p className="mobile-list-card-title">{tank?.name ?? "—"}</p>
+                          <p className="mobile-list-card-row">Dip: {formatNumber(d.dipReading)}</p>
+                          <p className="mobile-list-card-row">Actual: {formatNumber(d.actualQuantity)} L</p>
+                          <p className={`mobile-list-card-row font-medium ${d.lossOrGain >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                            Loss/Gain: {d.lossOrGain >= 0 ? "+" : ""}{formatNumber(d.lossOrGain)} L
+                          </p>
                           {isAdmin && (
-                            <td>
-                              <div className="flex gap-1">
-                                <button type="button" onClick={() => startEditDip(d)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-sky-600" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
-                                <button type="button" onClick={() => setDeleteDipTarget(d)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-600 hover:text-red-600" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
-                              </div>
-                            </td>
+                            <div className="mobile-list-card-actions">
+                              <button type="button" onClick={() => startEditDip(d)} className="btn btn-secondary min-h-[44px] flex-1 flex items-center justify-center gap-1.5" aria-label="Edit"><Pencil className="h-4 w-4" /><span>Edit</span></button>
+                              <button type="button" onClick={() => setDeleteDipTarget(d)} className="btn btn-danger min-h-[44px] flex-1 flex items-center justify-center gap-1.5" aria-label="Delete"><Trash2 className="h-4 w-4" /><span>Delete</span></button>
+                            </div>
                           )}
-                        </>
+                        </div>
                       )}
-                    </tr>
+                    </li>
                   );
                 })}
-              </tbody>
-            </table>
+              </ul>
+            ) : (
+              <div className="table-container">
+                <table className="table-default">
+                  <thead>
+                    <tr>
+                      <th>Tank</th>
+                      <th>Dip</th>
+                      <th>Actual</th>
+                      <th>Loss/Gain</th>
+                      {isAdmin && <th className="w-24">Actions</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dips.map((d) => {
+                      const tank = tanks.find((x) => x.id === d.tankId);
+                      const isEditingDipRow = editingDip?.id === d.id;
+                      const dipColSpan = isAdmin ? 5 : 4;
+                      return (
+                        <tr key={d.id}>
+                          {isEditingDipRow ? (
+                            <>
+                              <td className="align-middle text-slate-500">{tank?.name ?? "—"}</td>
+                              <td className="align-middle">
+                                <form id={`dip-edit-${d.id}`} onSubmit={handleUpdateDip} className="min-w-0">
+                                  <input type="number" step="any" className="input py-1.5 text-sm w-full min-w-0" value={editDipReading} onChange={(e) => setEditDipReading(e.target.value)} placeholder="Dip" required aria-label="Dip reading" />
+                                </form>
+                              </td>
+                              <td className="align-middle">
+                                <input form={`dip-edit-${d.id}`} type="number" step="any" className="input py-1.5 text-sm w-full min-w-0" value={editActualQty} onChange={(e) => setEditActualQty(e.target.value)} placeholder="Actual L" aria-label="Actual quantity (L)" />
+                              </td>
+                              <td className="align-middle text-slate-400">—</td>
+                              {isAdmin && (
+                                <td className="align-middle">
+                                  <div className="flex gap-2">
+                                    <button form={`dip-edit-${d.id}`} type="submit" className="btn-icon-primary" disabled={dipSaving} aria-label="Save"><Check className="h-4 w-4" /></button>
+                                    <button type="button" className="btn-icon-cancel" onClick={() => setEditingDip(null)} aria-label="Cancel"><X className="h-4 w-4" /></button>
+                                  </div>
+                                </td>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <td>{tank?.name ?? "-"}</td>
+                              <td>{formatNumber(d.dipReading)}</td>
+                              <td>{formatNumber(d.actualQuantity)} L</td>
+                              <td className={d.lossOrGain >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-red-600 dark:text-red-400 font-medium"}>{d.lossOrGain >= 0 ? "+" : ""}{formatNumber(d.lossOrGain)} L</td>
+                              {isAdmin && (
+                                <td>
+                                  <div className="flex gap-1">
+                                    <button type="button" onClick={() => startEditDip(d)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-sky-600 dark:hover:bg-slate-600 dark:text-slate-400 dark:hover:text-sky-400" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
+                                    <button type="button" onClick={() => setDeleteDipTarget(d)} className="btn-icon-delete" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
+                                  </div>
+                                </td>
+                              )}
+                            </>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>

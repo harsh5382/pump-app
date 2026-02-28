@@ -56,15 +56,15 @@ export default function SignUpPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-sky-950 p-4 sm:p-6">
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-sky-950 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950 p-4 sm:p-6">
       <div className="absolute inset-0 opacity-[0.05] bg-grid-pattern-auth" aria-hidden />
-      <div className="card w-full max-w-md relative z-10 shadow-soft border-white/10 bg-white/95 backdrop-blur-sm animate-slide-up">
+      <div className="card w-full max-w-md relative z-10 shadow-soft border-white/10 bg-white/95 backdrop-blur-sm dark:bg-slate-800/95 dark:border-sky-500/20 animate-slide-up">
         <div className="flex justify-center mb-6">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-sky-100">
-            <Fuel className="h-6 w-6 text-sky-600" />
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-sky-100 dark:bg-sky-900/50">
+            <Fuel className="h-6 w-6 text-sky-600 dark:text-sky-400" />
           </div>
         </div>
-        <h1 className="text-xl sm:text-2xl font-bold text-center text-slate-800 mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-center text-slate-800 dark:text-slate-100 mb-6">
           Create account
         </h1>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -113,7 +113,7 @@ export default function SignUpPage() {
             />
           </div>
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+            <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2 dark:text-red-400 dark:bg-red-900/20 dark:border-red-800">
               {error}
             </p>
           )}
@@ -125,17 +125,17 @@ export default function SignUpPage() {
             {loading ? "Creating account…" : "Sign up"}
           </button>
         </form>
-        <p className="mt-6 text-center text-sm text-slate-600">
+        <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
           Already have an account?{" "}
           <Link
             href="/login"
-            className="text-sky-600 hover:text-sky-700 font-semibold hover:underline"
+            className="text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 font-semibold hover:underline"
           >
             Sign in
           </Link>
         </p>
-        <p className="mt-2 text-center text-sm text-slate-500">
-          <Link href="/" className="text-sky-500 hover:underline">
+        <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-500">
+          <Link href="/" className="text-sky-500 hover:underline dark:text-sky-400">
             Back to home
           </Link>
         </p>

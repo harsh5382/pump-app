@@ -6,6 +6,8 @@ import { getNozzles, getTanks, getFuelTypes, addNozzle, updateNozzle, deleteNozz
 import type { Nozzle, Tank, FuelType } from "@/types";
 import { logAudit } from "@/lib/audit";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import FuelLoader from "@/components/FuelLoader";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import { Pencil, Trash2, Check, X } from "lucide-react";
 
 export default function NozzlesPage() {
@@ -28,6 +30,7 @@ export default function NozzlesPage() {
   const [deleting, setDeleting] = useState(false);
 
   const isAdmin = hasRole("admin");
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   useEffect(() => {
     Promise.all([getNozzles(), getTanks(), getFuelTypes()]).then(([n, t, f]) => {
@@ -112,18 +115,14 @@ export default function NozzlesPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-sky-600" />
-      </div>
-    );
+    return <FuelLoader />;
   }
 
   return (
     <div className="space-y-6">
       <h1 className="page-title">Dispensing Machines (Nozzles)</h1>
       {successMessage && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+        <div className="banner-success">
           {successMessage}
         </div>
       )}
@@ -194,25 +193,77 @@ export default function NozzlesPage() {
       )}
 
       <div className="card">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">Nozzles</h2>
-        <div className="table-container">
-          <table className="table-default">
-            <thead>
-              <tr>
-                <th>Machine no.</th>
-                <th>Fuel type</th>
-                <th>Tank</th>
-                {isAdmin && <th className="w-24">Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {nozzles.map((n) => {
-                const ft = fuelTypes.find((f) => f.id === n.fuelTypeId);
-                const tank = tanks.find((t) => t.id === n.tankId);
-                const isEditing = editingNozzle?.id === n.id;
-                return (
-                  <tr key={n.id}>
-                    {isEditing ? (
+        <h2 className="card-header">Nozzles</h2>
+        {isMobile ? (
+          <ul className="space-y-3 list-none p-0 m-0">
+            {nozzles.map((n) => {
+              const ft = fuelTypes.find((f) => f.id === n.fuelTypeId);
+              const tank = tanks.find((t) => t.id === n.tankId);
+              const isEditing = editingNozzle?.id === n.id;
+              return (
+                <li key={n.id}>
+                  {isEditing ? (
+                    <div className="edit-card">
+                      <p className="edit-card-title">Editing: Machine {n.machineNumber}</p>
+                      <form id={`nozzle-edit-${n.id}`} onSubmit={handleUpdate} className="space-y-4">
+                        <div>
+                          <label htmlFor={`nozzle-edit-no-${n.id}`} className="label">Machine number</label>
+                          <input id={`nozzle-edit-no-${n.id}`} className="input" value={editMachineNumber} onChange={(e) => setEditMachineNumber(e.target.value)} placeholder="No." required aria-label="Machine number" />
+                        </div>
+                        <div>
+                          <label htmlFor={`nozzle-edit-fuel-${n.id}`} className="label">Fuel type</label>
+                          <select id={`nozzle-edit-fuel-${n.id}`} form={`nozzle-edit-${n.id}`} className="input" value={editFuelTypeId} onChange={(e) => setEditFuelTypeId(e.target.value)} aria-label="Fuel type">
+                            {fuelTypes.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label htmlFor={`nozzle-edit-tank-${n.id}`} className="label">Tank</label>
+                          <select id={`nozzle-edit-tank-${n.id}`} form={`nozzle-edit-${n.id}`} className="input" value={editTankId} onChange={(e) => setEditTankId(e.target.value)} aria-label="Tank">
+                            {tanks.filter((t) => t.fuelTypeId === editFuelTypeId).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                          </select>
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                          <button form={`nozzle-edit-${n.id}`} type="submit" className="btn btn-primary flex-1 min-h-[48px]" disabled={saving} aria-label="Save"><Check className="h-5 w-5 sm:mr-1.5" /><span className="hidden sm:inline">{saving ? "Saving…" : "Save"}</span></button>
+                          <button type="button" className="btn btn-secondary flex-1 min-h-[48px]" onClick={() => setEditingNozzle(null)} aria-label="Cancel"><X className="h-5 w-5 sm:mr-1.5" /><span className="hidden sm:inline">Cancel</span></button>
+                        </div>
+                      </form>
+                    </div>
+                  ) : (
+                    <div className="mobile-list-card">
+                      <p className="mobile-list-card-title">Machine {n.machineNumber}</p>
+                      <p className="mobile-list-card-row">Fuel type: {ft?.name ?? "—"}</p>
+                      <p className="mobile-list-card-row">Tank: {tank?.name ?? "—"}</p>
+                      {isAdmin && (
+                        <div className="mobile-list-card-actions">
+                          <button type="button" onClick={() => startEdit(n)} className="btn btn-secondary min-h-[44px] flex-1 flex items-center justify-center gap-1.5" aria-label="Edit"><Pencil className="h-4 w-4" /><span>Edit</span></button>
+                          <button type="button" onClick={() => setDeleteTarget(n)} className="btn btn-danger min-h-[44px] flex-1 flex items-center justify-center gap-1.5" aria-label="Delete"><Trash2 className="h-4 w-4" /><span>Delete</span></button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="table-container">
+            <table className="table-default">
+              <thead>
+                <tr>
+                  <th>Machine no.</th>
+                  <th>Fuel type</th>
+                  <th>Tank</th>
+                  {isAdmin && <th className="w-24">Actions</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {nozzles.map((n) => {
+                  const ft = fuelTypes.find((f) => f.id === n.fuelTypeId);
+                  const tank = tanks.find((t) => t.id === n.tankId);
+                  const isEditing = editingNozzle?.id === n.id;
+                  return (
+                    <tr key={n.id}>
+                      {isEditing ? (
                       <>
                         <td className="align-middle">
                           <form id={`nozzle-edit-${n.id}`} onSubmit={handleUpdate} className="min-w-0">
@@ -231,8 +282,10 @@ export default function NozzlesPage() {
                         </td>
                         {isAdmin && (
                           <td className="align-middle">
-                            <button form={`nozzle-edit-${n.id}`} type="submit" className="p-2 rounded-lg bg-sky-600 text-white hover:bg-sky-500 disabled:opacity-50 inline-flex items-center justify-center mr-1" disabled={saving} aria-label="Save"><Check className="h-4 w-4" /></button>
-                            <button type="button" className="p-2 rounded-lg border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200 inline-flex items-center justify-center" onClick={() => setEditingNozzle(null)} aria-label="Cancel"><X className="h-4 w-4" /></button>
+                            <div className="flex gap-2">
+                              <button form={`nozzle-edit-${n.id}`} type="submit" className="btn-icon-primary" disabled={saving} aria-label="Save"><Check className="h-4 w-4" /></button>
+                              <button type="button" className="btn-icon-cancel" onClick={() => setEditingNozzle(null)} aria-label="Cancel"><X className="h-4 w-4" /></button>
+                            </div>
                           </td>
                         )}
                       </>
@@ -245,7 +298,7 @@ export default function NozzlesPage() {
                           <td>
                             <div className="flex gap-1">
                               <button type="button" onClick={() => startEdit(n)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-sky-600" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
-                              <button type="button" onClick={() => setDeleteTarget(n)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-600 hover:text-red-600" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
+                              <button type="button" onClick={() => setDeleteTarget(n)} className="btn-icon-delete" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
                             </div>
                           </td>
                         )}
@@ -257,6 +310,7 @@ export default function NozzlesPage() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
       <ConfirmDialog
         open={!!deleteTarget}

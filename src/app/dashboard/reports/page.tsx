@@ -11,9 +11,17 @@ import {
   getFuelTypes,
   getTanks,
 } from "@/lib/db";
-import type { MeterReading, TankerDelivery, PaymentEntry, Expense, StaffShift } from "@/types";
+import type {
+  MeterReading,
+  TankerDelivery,
+  PaymentEntry,
+  Expense,
+  StaffShift,
+} from "@/types";
 import { formatCurrency, formatNumber, formatDate } from "@/lib/utils";
 import { exportToExcel, exportToPdf } from "@/lib/exportReport";
+import DatePicker from "@/components/DatePicker";
+import FuelLoader from "@/components/FuelLoader";
 
 type ReportType = "daily" | "monthly" | "fuel_sale" | "staff" | "expense";
 
@@ -24,7 +32,9 @@ export default function ReportsPage() {
     d.setDate(1);
     return d.toISOString().split("T")[0];
   });
-  const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
+  const [endDate, setEndDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<{
     readings?: MeterReading[];
@@ -33,8 +43,12 @@ export default function ReportsPage() {
     expenses?: Expense[];
     shifts?: StaffShift[];
   }>({});
-  const [nozzles, setNozzles] = useState<{ id: string; machineNumber: string; fuelTypeId: string }[]>([]);
-  const [fuelTypes, setFuelTypes] = useState<{ id: string; name: string }[]>([]);
+  const [nozzles, setNozzles] = useState<
+    { id: string; machineNumber: string; fuelTypeId: string }[]
+  >([]);
+  const [fuelTypes, setFuelTypes] = useState<{ id: string; name: string }[]>(
+    [],
+  );
 
   useEffect(() => {
     getNozzles().then(setNozzles);
@@ -44,7 +58,11 @@ export default function ReportsPage() {
   const loadReport = useCallback(async () => {
     setLoading(true);
     try {
-      if (reportType === "daily" || reportType === "monthly" || reportType === "fuel_sale") {
+      if (
+        reportType === "daily" ||
+        reportType === "monthly" ||
+        reportType === "fuel_sale"
+      ) {
         const [readings, deliveries, payments] = await Promise.all([
           getMeterReadingsDateRange(startDate, endDate),
           getTankerDeliveriesDateRange(startDate, endDate),
@@ -71,13 +89,18 @@ export default function ReportsPage() {
   data.readings?.forEach((r) => {
     const nozzle = nozzles.find((n) => n.id === r.nozzleId);
     if (nozzle) {
-      const name = fuelTypes.find((f) => f.id === nozzle.fuelTypeId)?.name ?? "Unknown";
+      const name =
+        fuelTypes.find((f) => f.id === nozzle.fuelTypeId)?.name ?? "Unknown";
       fuelSoldByType[name] = (fuelSoldByType[name] ?? 0) + (r.fuelSold ?? 0);
     }
   });
 
   function handleExportExcel() {
-    if (reportType === "fuel_sale" || reportType === "daily" || reportType === "monthly") {
+    if (
+      reportType === "fuel_sale" ||
+      reportType === "daily" ||
+      reportType === "monthly"
+    ) {
       const rows = Object.entries(fuelSoldByType).map(([name, liters]) => ({
         "Fuel Type": name,
         "Sold (L)": liters,
@@ -108,16 +131,25 @@ export default function ReportsPage() {
   }
 
   function handleExportPdf() {
-    if (reportType === "fuel_sale" || reportType === "daily" || reportType === "monthly") {
+    if (
+      reportType === "fuel_sale" ||
+      reportType === "daily" ||
+      reportType === "monthly"
+    ) {
       const headers = ["Fuel Type", "Sold (L)"];
-      const rows = Object.entries(fuelSoldByType).map(([name, liters]) => [name, formatNumber(liters)]);
-      const totalPayments = data.payments?.reduce((s, p) => s + p.amount, 0) ?? 0;
-      if (totalPayments > 0) rows.push(["Total Revenue", formatCurrency(totalPayments)]);
+      const rows = Object.entries(fuelSoldByType).map(([name, liters]) => [
+        name,
+        formatNumber(liters),
+      ]);
+      const totalPayments =
+        data.payments?.reduce((s, p) => s + p.amount, 0) ?? 0;
+      if (totalPayments > 0)
+        rows.push(["Total Revenue", formatCurrency(totalPayments)]);
       exportToPdf(
         `Fuel Sale Report ${startDate} to ${endDate}`,
         headers,
         rows,
-        `fuel-sale-${startDate}-${endDate}`
+        `fuel-sale-${startDate}-${endDate}`,
       );
     } else if (reportType === "staff" && data.shifts?.length) {
       const headers = ["Date", "Staff", "Shift", "Cash"];
@@ -131,7 +163,7 @@ export default function ReportsPage() {
         `Staff Report ${startDate} to ${endDate}`,
         headers,
         rows,
-        `staff-${startDate}-${endDate}`
+        `staff-${startDate}-${endDate}`,
       );
     } else if (reportType === "expense" && data.expenses?.length) {
       const headers = ["Date", "Category", "Amount", "Description"];
@@ -145,7 +177,7 @@ export default function ReportsPage() {
         `Expense Report ${startDate} to ${endDate}`,
         headers,
         rows,
-        `expense-${startDate}-${endDate}`
+        `expense-${startDate}-${endDate}`,
       );
     }
   }
@@ -155,7 +187,9 @@ export default function ReportsPage() {
       <h1 className="page-title">Reports</h1>
       <div className="card flex flex-wrap gap-4 items-end">
         <div>
-          <label htmlFor="report-type" className="label">Report type</label>
+          <label htmlFor="report-type" className="label">
+            Report type
+          </label>
           <select
             id="report-type"
             className="input min-w-[180px]"
@@ -171,24 +205,24 @@ export default function ReportsPage() {
           </select>
         </div>
         <div>
-          <label htmlFor="report-from" className="label">From</label>
-          <input
+          <label htmlFor="report-from" className="label">
+            From
+          </label>
+          <DatePicker
             id="report-from"
-            type="date"
-            className="input"
             value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            onChange={setStartDate}
             aria-label="Report start date"
           />
         </div>
         <div>
-          <label htmlFor="report-to" className="label">To</label>
-          <input
+          <label htmlFor="report-to" className="label">
+            To
+          </label>
+          <DatePicker
             id="report-to"
-            type="date"
-            className="input"
             value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            onChange={setEndDate}
             aria-label="Report end date"
           />
         </div>
@@ -201,29 +235,40 @@ export default function ReportsPage() {
           >
             {loading ? "Loading…" : "Refresh"}
           </button>
-          <button type="button" className="btn btn-primary" onClick={handleExportExcel}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleExportExcel}
+          >
             Export Excel
           </button>
-          <button type="button" className="btn btn-primary" onClick={handleExportPdf}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleExportPdf}
+          >
             Export PDF
           </button>
         </div>
       </div>
 
       {loading ? (
-        <div className="card flex justify-center py-12">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-sky-600" />
+        <div className="card flex justify-center py-12 min-h-[200px]">
+          <FuelLoader size="sm" className="py-0 min-h-0" />
         </div>
       ) : (
         <div className="card">
-          <h2 className="text-lg font-semibold mb-4">
+          <h2 className="card-header">
             {reportType === "daily" && "Daily"}
             {reportType === "monthly" && "Monthly"}
             {reportType === "fuel_sale" && "Fuel Sale"}
             {reportType === "staff" && "Staff"}
-            {reportType === "expense" && "Expense"} Report ({startDate} – {endDate})
+            {reportType === "expense" && "Expense"} Report ({startDate} –{" "}
+            {endDate})
           </h2>
-          {(reportType === "daily" || reportType === "monthly" || reportType === "fuel_sale") && (
+          {(reportType === "daily" ||
+            reportType === "monthly" ||
+            reportType === "fuel_sale") && (
             <>
               <h3 className="font-medium mt-4">Fuel sold by type</h3>
               <ul className="list-disc list-inside my-2">
@@ -237,14 +282,22 @@ export default function ReportsPage() {
                 <>
                   <h3 className="font-medium mt-4">Total revenue</h3>
                   <p className="text-xl font-bold text-sky-600">
-                    {formatCurrency(data.payments.reduce((s, p) => s + p.amount, 0))}
+                    {formatCurrency(
+                      data.payments.reduce((s, p) => s + p.amount, 0),
+                    )}
                   </p>
                 </>
               )}
               {data.deliveries && data.deliveries.length > 0 && (
                 <>
                   <h3 className="font-medium mt-4">Tanker deliveries</h3>
-                  <p>{data.deliveries.length} delivery(ies), {formatNumber(data.deliveries.reduce((s, d) => s + d.quantityLiters, 0))} L total</p>
+                  <p>
+                    {data.deliveries.length} delivery(ies),{" "}
+                    {formatNumber(
+                      data.deliveries.reduce((s, d) => s + d.quantityLiters, 0),
+                    )}{" "}
+                    L total
+                  </p>
                 </>
               )}
             </>
@@ -265,8 +318,12 @@ export default function ReportsPage() {
                     <tr key={s.id} className="border-b border-slate-100">
                       <td className="py-2">{s.date}</td>
                       <td className="py-2">{s.staffName}</td>
-                      <td className="py-2">{s.shiftStart} – {s.shiftEnd}</td>
-                      <td className="py-2">{formatCurrency(s.cashCollected)}</td>
+                      <td className="py-2">
+                        {s.shiftStart} – {s.shiftEnd}
+                      </td>
+                      <td className="py-2">
+                        {formatCurrency(s.cashCollected)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -288,7 +345,9 @@ export default function ReportsPage() {
                   {data.expenses.map((e) => (
                     <tr key={e.id} className="border-b border-slate-100">
                       <td className="py-2">{e.date}</td>
-                      <td className="py-2 capitalize">{e.category.replace("_", " ")}</td>
+                      <td className="py-2 capitalize">
+                        {e.category.replace("_", " ")}
+                      </td>
                       <td className="py-2">{formatCurrency(e.amount)}</td>
                       <td className="py-2">{e.description}</td>
                     </tr>

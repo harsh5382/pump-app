@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import FuelLoader from "@/components/FuelLoader";
 
 export default function ProtectedRoute({
   children,
@@ -26,11 +27,7 @@ export default function ProtectedRoute({
   }, [user, profile, loading, roles, router]);
 
   if (loading || !user || !profile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600" />
-      </div>
-    );
+    return <FuelLoader fullScreen />;
   }
 
   if (roles && roles.length && !roles.includes(profile.role)) {
