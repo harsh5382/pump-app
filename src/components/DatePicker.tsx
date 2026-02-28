@@ -39,9 +39,16 @@ export default function DatePicker({
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const selected = toDate(value);
   const minDate = min ? toDate(min) : undefined;
   const maxDate = max ? toDate(max) : undefined;
+
+  useEffect(() => {
+    if (buttonRef.current) {
+      buttonRef.current.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+  }, [open]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -58,10 +65,11 @@ export default function DatePicker({
   return (
     <div ref={ref} className={`relative ${className}`}>
       <button
+        ref={buttonRef}
         type="button"
         id={id}
         aria-label={ariaLabel}
-        aria-expanded={open ? "true" : "false"}
+        aria-expanded="false"
         aria-haspopup="dialog"
         onClick={() => setOpen((o) => !o)}
         className="input w-full flex items-center gap-2 text-left cursor-pointer min-h-[44px] sm:min-h-0"
@@ -87,10 +95,9 @@ export default function DatePicker({
                 setOpen(false);
               }
             }}
-            disabled={
-              minDate || maxDate
-                ? { ...(minDate && { before: minDate }), ...(maxDate && { after: maxDate }) }
-                : undefined
+            disabled={(date) =>
+              (minDate !== undefined && date < minDate) ||
+              (maxDate !== undefined && date > maxDate)
             }
             defaultMonth={selected ?? new Date()}
             showOutsideDays
