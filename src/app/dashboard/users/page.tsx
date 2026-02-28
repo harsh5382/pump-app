@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { getUsers, updateUserProfile } from "@/lib/db";
+import { getUsers, updateUserProfile, deleteUserProfile } from "@/lib/db";
 import type { UserProfile, UserRole } from "@/types";
 import { logAudit } from "@/lib/audit";
 import FuelLoader from "@/components/FuelLoader";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { useMediaQuery } from "@/lib/useMediaQuery";
-import { Pencil, Check, X } from "lucide-react";
+import { Pencil, Check, X, Trash2 } from "lucide-react";
 
 export default function UsersPage() {
   const { profile, hasRole, createUser: authCreateUser } = useAuth();
@@ -23,8 +24,11 @@ export default function UsersPage() {
   const [editing, setEditing] = useState<UserProfile | null>(null);
   const [editDisplayName, setEditDisplayName] = useState("");
   const [editRole, setEditRole] = useState<UserRole>("staff");
+  const [deleteTarget, setDeleteTarget] = useState<UserProfile | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const isAdmin = hasRole("admin");
+  const currentUid = profile?.uid;
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   function startEdit(u: UserProfile) {
@@ -71,6 +75,23 @@ export default function UsersPage() {
       setError(err instanceof Error ? err.message : "Failed to create user");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDeleteUser() {
+    if (!deleteTarget || !profile || deleteTarget.uid === profile.uid) return;
+    setDeleting(true);
+    try {
+      await deleteUserProfile(deleteTarget.uid);
+      await logAudit(profile.uid, profile.email, "DELETE", "user", `User: ${deleteTarget.email}`);
+      setUsers(await getUsers());
+      setDeleteTarget(null);
+      setSuccessMessage("User deleted.");
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to delete user");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -185,6 +206,7 @@ export default function UsersPage() {
                       <p className="mobile-list-card-row">Role: <span className="capitalize">{u.role}</span></p>
                       <div className="mobile-list-card-actions">
                         <button type="button" onClick={() => startEdit(u)} className="btn btn-secondary min-h-[44px] flex-1 flex items-center justify-center gap-1.5" aria-label="Edit"><Pencil className="h-4 w-4" /><span>Edit</span></button>
+                        <button type="button" onClick={() => setDeleteTarget(u)} disabled={u.uid === currentUid} className="btn btn-danger min-h-[44px] flex-1 flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Delete" title={u.uid === currentUid ? "Cannot delete yourself" : "Delete user"}><Trash2 className="h-4 w-4" /><span>Delete</span></button>
                       </div>
                     </div>
                   )}
@@ -236,7 +258,10 @@ export default function UsersPage() {
                         <td>{u.email}</td>
                         <td className="capitalize">{u.role}</td>
                         <td>
-                          <button type="button" onClick={() => startEdit(u)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-sky-600" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
+                          <div className="flex gap-1">
+                            <button type="button" onClick={() => startEdit(u)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-sky-600 dark:hover:bg-slate-700 dark:text-slate-400" aria-label="Edit" title="Edit"><Pencil className="h-4 w-4" /></button>
+                            <button type="button" onClick={() => setDeleteTarget(u)} disabled={u.uid === currentUid} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-600 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed dark:hover:bg-red-900/20" aria-label="Delete" title={u.uid === currentUid ? "Cannot delete yourself" : "Delete user"}><Trash2 className="h-4 w-4" /></button>
+                          </div>
                         </td>
                       </>
                     )}
@@ -248,6 +273,17 @@ export default function UsersPage() {
         </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete user?"
+        message={deleteTarget ? `Remove "${deleteTarget.displayName}" (${deleteTarget.email})? They can sign in again and will get a new staff account.` : ""}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleDeleteUser}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleting}
+      />
     </div>
   );
 }

@@ -50,6 +50,7 @@ const nav = [
 const adminNav = [
   { href: "/dashboard/fuel-types", label: "Fuel Types", icon: Fuel },
   { href: "/dashboard/users", label: "Users", icon: Users },
+  { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

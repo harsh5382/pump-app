@@ -350,6 +350,10 @@ export async function updateUserProfile(
   await updateDoc(doc(db, "users", uid), payload);
 }
 
+export async function deleteUserProfile(uid: string): Promise<void> {
+  await deleteDoc(doc(db, "users", uid));
+}
+
 // Notifications (fetch with orderBy only to avoid composite index; filter by userId in memory)
 export async function getNotifications(userId?: string): Promise<Notification[]> {
   const q = query(
