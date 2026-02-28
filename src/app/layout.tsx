@@ -2,8 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "react-day-picker/style.css";
 import "./globals.css";
-import { AuthProvider } from "@/context/AuthContext";
-import { ThemeProvider } from "@/context/ThemeContext";
+import { ClientProviders } from "@/components/ClientProviders";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -46,9 +45,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans" suppressHydrationWarning>
-        <ThemeProvider>
-          <AuthProvider>{children}</AuthProvider>
-        </ThemeProvider>
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );
