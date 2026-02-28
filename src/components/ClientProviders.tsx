@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { ThemeProvider } from "@/context/ThemeContext";
+import PWAInstallBanner from "@/components/PWAInstallBanner";
 
 const AuthProvider = dynamic(
   () =>
@@ -14,7 +15,10 @@ const AuthProvider = dynamic(
 export function ClientProviders({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
-      <AuthProvider>{children}</AuthProvider>
+      <AuthProvider>
+        {children}
+        <PWAInstallBanner />
+      </AuthProvider>
     </ThemeProvider>
   );
 }
