@@ -1,14 +1,24 @@
 import Link from "next/link";
-import { Fuel } from "lucide-react";
+import Image from "next/image";
 
 export default function HomePage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-sky-950 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950 text-white p-4 sm:p-6">
       {/* Subtle grid pattern */}
-      <div className="absolute inset-0 opacity-[0.06] bg-grid-pattern-hero" aria-hidden />
+      <div
+        className="absolute inset-0 opacity-[0.06] bg-grid-pattern-hero"
+        aria-hidden
+      />
       <div className="text-center max-w-lg w-full relative z-10 animate-fade-in">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 mb-6">
-          <Fuel className="h-8 w-8 text-amber-400" />
+        <div className="inline-flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 mb-6 overflow-hidden">
+          <Image
+            src="/icons/logo.png"
+            alt="Petrol Pump"
+            width={112}
+            height={112}
+            className="object-contain"
+            priority
+          />
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
           Petrol Pump Management

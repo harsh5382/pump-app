@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 import {
   LayoutDashboard,
   Fuel,
@@ -175,9 +176,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             onClick={closeSidebar}
             className="flex items-center gap-2 font-bold text-slate-800 text-lg dark:text-slate-100"
           >
-            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-sky-100 text-sky-600 dark:bg-sky-900/50 dark:text-sky-400">
-              <Fuel className="h-4 w-4" />
-            </span>
+            <Image src="/icons/logo.png" alt="" width={40} height={40} className="object-contain" />
             Petrol Pump
           </Link>
           <button

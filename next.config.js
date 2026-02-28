@@ -15,6 +15,7 @@ const nextConfig = {
   output: "export",
   trailingSlash: true,
   productionBrowserSourceMaps: false,
+  images: { unoptimized: true },
 };
 
 module.exports = withPWA(nextConfig);

@@ -8,7 +8,7 @@ import { doc, setDoc, getDocs, collection } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import type { UserProfile, UserRole } from "@/types";
-import { Fuel } from "lucide-react";
+import Image from "next/image";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -60,8 +60,8 @@ export default function SignUpPage() {
       <div className="absolute inset-0 opacity-[0.05] bg-grid-pattern-auth" aria-hidden />
       <div className="card w-full max-w-md relative z-10 shadow-soft border-white/10 bg-white/95 backdrop-blur-sm dark:bg-slate-800/95 dark:border-sky-500/20 animate-slide-up">
         <div className="flex justify-center mb-6">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-sky-100 dark:bg-sky-900/50">
-            <Fuel className="h-6 w-6 text-sky-600 dark:text-sky-400" />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-sky-100 dark:bg-sky-900/50 overflow-hidden">
+            <Image src="/icons/logo.png" alt="Petrol Pump" width={80} height={80} className="object-contain" />
           </div>
         </div>
         <h1 className="text-xl sm:text-2xl font-bold text-center text-slate-800 dark:text-slate-100 mb-6">
