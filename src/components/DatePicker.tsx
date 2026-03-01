@@ -40,7 +40,7 @@ export default function DatePicker({
 
   return (
     <div className={className}>
-      <MuiDatePicker<Date>
+      <MuiDatePicker
         label={placeholder}
         value={dateValue}
         onChange={(d) => onChange(d ? toValue(d) : "")}
