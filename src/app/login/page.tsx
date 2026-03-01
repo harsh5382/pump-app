@@ -89,10 +89,20 @@ export default function LoginPage() {
           )}
           <button
             type="submit"
-            className="btn btn-primary w-full min-h-[48px]"
+            className="btn btn-primary w-full min-h-[48px] inline-flex items-center justify-center gap-2"
             disabled={loading}
           >
-            {loading ? "Signing in…" : "Sign In"}
+            {loading ? (
+              <>
+                <span
+                  className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0"
+                  aria-hidden
+                />
+                Signing in…
+              </>
+            ) : (
+              "Sign In"
+            )}
           </button>
         </form>
         <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
