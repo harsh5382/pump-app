@@ -2,7 +2,9 @@
   "name": "petrol-pump-management",
   "version": "1.0.0",
   "private": true,
-  "engines": { "node": "20.x" },
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "next dev",
     "dev:network": "next dev --hostname 0.0.0.0",
@@ -17,6 +19,10 @@
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.8",
+    "@mui/x-date-pickers": "^8.27.2",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "firebase": "^10.14.1",

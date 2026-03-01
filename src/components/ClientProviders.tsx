@@ -3,6 +3,8 @@
 import dynamic from "next/dynamic";
 import { ThemeProvider } from "@/context/ThemeContext";
 import PWAInstallBanner from "@/components/PWAInstallBanner";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
 const AuthProvider = dynamic(
   () =>
@@ -15,10 +17,12 @@ const AuthProvider = dynamic(
 export function ClientProviders({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        {children}
-        <PWAInstallBanner />
-      </AuthProvider>
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
+        <AuthProvider>
+          {children}
+          <PWAInstallBanner />
+        </AuthProvider>
+      </LocalizationProvider>
     </ThemeProvider>
   );
 }
