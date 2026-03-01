@@ -12,6 +12,7 @@ import {
 } from "@/lib/db";
 import type { Nozzle, FuelType, MeterReading } from "@/types";
 import { formatNumber, formatDate } from "@/lib/utils";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import DatePicker from "@/components/DatePicker";
 import FuelLoader from "@/components/FuelLoader";
@@ -33,6 +34,7 @@ export default function MeterReadingsPage() {
   const [deleteTarget, setDeleteTarget] = useState<MeterReading | null>(null);
   const [deleting, setDeleting] = useState(false);
   const isAdmin = hasRole("admin");
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   useEffect(() => {
     Promise.all([getNozzles(), getFuelTypes()]).then(([n, f]) => {
@@ -129,7 +131,6 @@ export default function MeterReadingsPage() {
       )}
       <div className="card overflow-hidden">
         <div className="mb-4">
-          <label htmlFor="meter-readings-date" className="label">Date</label>
           <DatePicker
             id="meter-readings-date"
             value={date}
@@ -138,90 +139,166 @@ export default function MeterReadingsPage() {
             className="max-w-xs"
           />
         </div>
-        <p className="text-sm text-slate-600 mb-4 break-words">
+        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 break-words">
           Enter morning opening and evening closing meter for each machine. Fuel sold = Closing − Opening.
         </p>
-        <div className="table-container -mx-1">
-          <table className="table-default min-w-[min(100%,32rem)]">
-            <thead>
-              <tr>
-                <th className="whitespace-nowrap">Machine</th>
-                <th className="whitespace-nowrap">Fuel type</th>
-                <th className="whitespace-nowrap min-w-[5rem]">Opening</th>
-                <th className="whitespace-nowrap min-w-[5rem]">Closing</th>
-                <th className="whitespace-nowrap">Sold</th>
-                <th className="whitespace-nowrap w-14"></th>
-                {isAdmin && <th className="whitespace-nowrap w-14">Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {nozzles.map((n) => {
-                const ft = fuelTypes.find((f) => f.id === n.fuelTypeId);
-                const r = readings.find((x) => x.nozzleId === n.id);
-                const o = Number(opening[n.id] ?? r?.openingMeter ?? 0);
-                const c = Number(closing[n.id] ?? r?.closingMeter ?? 0);
-                const sold = r?.fuelSold ?? (c >= o ? c - o : 0);
-                return (
-                  <tr key={n.id}>
-                    <td className="whitespace-nowrap">{n.machineNumber}</td>
-                    <td className="whitespace-nowrap">{ft?.name ?? "-"}</td>
-                    <td className="min-w-[5rem]">
-                      <input
-                        type="number"
-                        step="any"
-                        className="input py-2 text-sm w-full min-w-0"
-                        value={opening[n.id] ?? r?.openingMeter ?? ""}
-                        onChange={(e) => setOpening((prev) => ({ ...prev, [n.id]: e.target.value }))}
-                        aria-label={`Opening meter for machine ${n.machineNumber}`}
-                      />
-                    </td>
-                    <td className="min-w-[5rem]">
-                      <input
-                        type="number"
-                        step="any"
-                        className="input py-2 text-sm w-full min-w-0"
-                        value={closing[n.id] ?? r?.closingMeter ?? ""}
-                        onChange={(e) => setClosing((prev) => ({ ...prev, [n.id]: e.target.value }))}
-                        aria-label={`Closing meter for machine ${n.machineNumber}`}
-                      />
-                    </td>
-                    <td className="whitespace-nowrap font-medium">{formatNumber(sold)} L</td>
-                    <td>
+        {isMobile ? (
+          <ul className="space-y-4 list-none p-0 m-0">
+            {nozzles.map((n) => {
+              const ft = fuelTypes.find((f) => f.id === n.fuelTypeId);
+              const r = readings.find((x) => x.nozzleId === n.id);
+              const o = Number(opening[n.id] ?? r?.openingMeter ?? 0);
+              const c = Number(closing[n.id] ?? r?.closingMeter ?? 0);
+              const sold = r?.fuelSold ?? (c >= o ? c - o : 0);
+              return (
+                <li key={n.id}>
+                  <div className="mobile-list-card">
+                    <p className="mobile-list-card-title">Machine {n.machineNumber}</p>
+                    <p className="mobile-list-card-row">Fuel type: {ft?.name ?? "—"}</p>
+                    <div className="space-y-3 pt-2">
+                      <div>
+                        <label htmlFor={`opening-mobile-${n.id}`} className="label text-xs">Opening</label>
+                        <input
+                          id={`opening-mobile-${n.id}`}
+                          type="number"
+                          step="any"
+                          className="input py-2 text-sm w-full"
+                          value={opening[n.id] ?? r?.openingMeter ?? ""}
+                          onChange={(e) => setOpening((prev) => ({ ...prev, [n.id]: e.target.value }))}
+                          aria-label={`Opening meter for machine ${n.machineNumber}`}
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor={`closing-mobile-${n.id}`} className="label text-xs">Closing</label>
+                        <input
+                          id={`closing-mobile-${n.id}`}
+                          type="number"
+                          step="any"
+                          className="input py-2 text-sm w-full"
+                          value={closing[n.id] ?? r?.closingMeter ?? ""}
+                          onChange={(e) => setClosing((prev) => ({ ...prev, [n.id]: e.target.value }))}
+                          aria-label={`Closing meter for machine ${n.machineNumber}`}
+                        />
+                      </div>
+                    </div>
+                    <p className="mobile-list-card-row font-medium text-slate-700 dark:text-slate-300 pt-1">
+                      Sold: {formatNumber(sold)} L
+                    </p>
+                    <div className="mobile-list-card-actions flex-wrap gap-2">
                       <button
                         type="button"
-                        className="p-2 rounded-lg bg-sky-600 text-white hover:bg-sky-500 disabled:opacity-50 inline-flex items-center justify-center shrink-0"
+                        className="btn btn-primary min-h-[44px] flex-1 flex items-center justify-center gap-1.5"
                         disabled={saving === n.id}
                         onClick={() => handleSave(n.id)}
                         aria-label={saving === n.id ? "Saving…" : "Save"}
-                        title={saving === n.id ? "Saving…" : "Save"}
                       >
                         {saving === n.id ? (
                           <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" aria-hidden />
                         ) : (
                           <Check className="h-4 w-4" />
                         )}
+                        <span>{saving === n.id ? "Saving…" : "Save"}</span>
                       </button>
-                    </td>
-                    {isAdmin && (
-                      <td>
-                        {r && (
-                          <button
-                            type="button"
-                            onClick={() => setDeleteTarget(r)}
-                            className="btn-icon-delete p-2 shrink-0"
-                            aria-label="Delete reading"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
+                      {isAdmin && r && (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(r)}
+                          className="btn btn-danger min-h-[44px] flex-1 flex items-center justify-center gap-1.5"
+                          aria-label="Delete reading"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span>Delete</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="table-container -mx-1">
+            <table className="table-default min-w-[min(100%,32rem)]">
+              <thead>
+                <tr>
+                  <th className="whitespace-nowrap">Machine</th>
+                  <th className="whitespace-nowrap">Fuel type</th>
+                  <th className="whitespace-nowrap min-w-[5rem]">Opening</th>
+                  <th className="whitespace-nowrap min-w-[5rem]">Closing</th>
+                  <th className="whitespace-nowrap">Sold</th>
+                  <th className="whitespace-nowrap w-14"></th>
+                  {isAdmin && <th className="whitespace-nowrap w-14">Actions</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {nozzles.map((n) => {
+                  const ft = fuelTypes.find((f) => f.id === n.fuelTypeId);
+                  const r = readings.find((x) => x.nozzleId === n.id);
+                  const o = Number(opening[n.id] ?? r?.openingMeter ?? 0);
+                  const c = Number(closing[n.id] ?? r?.closingMeter ?? 0);
+                  const sold = r?.fuelSold ?? (c >= o ? c - o : 0);
+                  return (
+                    <tr key={n.id}>
+                      <td className="whitespace-nowrap">{n.machineNumber}</td>
+                      <td className="whitespace-nowrap">{ft?.name ?? "-"}</td>
+                      <td className="min-w-[5rem]">
+                        <input
+                          type="number"
+                          step="any"
+                          className="input py-2 text-sm w-full min-w-0"
+                          value={opening[n.id] ?? r?.openingMeter ?? ""}
+                          onChange={(e) => setOpening((prev) => ({ ...prev, [n.id]: e.target.value }))}
+                          aria-label={`Opening meter for machine ${n.machineNumber}`}
+                        />
                       </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      <td className="min-w-[5rem]">
+                        <input
+                          type="number"
+                          step="any"
+                          className="input py-2 text-sm w-full min-w-0"
+                          value={closing[n.id] ?? r?.closingMeter ?? ""}
+                          onChange={(e) => setClosing((prev) => ({ ...prev, [n.id]: e.target.value }))}
+                          aria-label={`Closing meter for machine ${n.machineNumber}`}
+                        />
+                      </td>
+                      <td className="whitespace-nowrap font-medium">{formatNumber(sold)} L</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="p-2 rounded-lg bg-sky-600 text-white hover:bg-sky-500 disabled:opacity-50 inline-flex items-center justify-center shrink-0"
+                          disabled={saving === n.id}
+                          onClick={() => handleSave(n.id)}
+                          aria-label={saving === n.id ? "Saving…" : "Save"}
+                          title={saving === n.id ? "Saving…" : "Save"}
+                        >
+                          {saving === n.id ? (
+                            <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" aria-hidden />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
+                        </button>
+                      </td>
+                      {isAdmin && (
+                        <td>
+                          {r && (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTarget(r)}
+                              className="btn-icon-delete p-2 shrink-0"
+                              aria-label="Delete reading"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
         {nozzles.length === 0 && (
           <p className="text-slate-500 py-4">Add nozzles first from the Nozzles page.</p>
         )}
