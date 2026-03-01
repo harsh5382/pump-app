@@ -39,7 +39,7 @@ export default function DatePicker({
   const maxDate = max ? toDate(max) : null;
 
   return (
-    <div className={className}>
+    <div className={`date-picker-root ${className}`.trim()}>
       <MuiDatePicker
         label={placeholder}
         value={dateValue}
