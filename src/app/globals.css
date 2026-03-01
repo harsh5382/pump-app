@@ -77,37 +77,39 @@
   color: rgb(248 250 252);
 }
 
-/* MUI DatePicker dark mode: label, text, border, placeholder */
+/* MUI DatePicker dark mode: force override MUI's default dark text/border */
 .dark .date-picker-root .MuiInputLabel-root {
-  color: rgb(203 213 225);
+  color: rgb(203 213 225) !important;
 }
 .dark .date-picker-root .MuiInputLabel-root.Mui-focused {
-  color: rgb(56 189 248);
+  color: rgb(56 189 248) !important;
 }
 .dark .date-picker-root .MuiOutlinedInput-root {
-  --input-bg: rgb(51 65 85);
-  --input-border: rgb(71 85 105);
-  --input-border-hover: rgb(100 116 139);
+  background-color: rgb(51 65 85) !important;
+  color: rgb(248 250 252) !important;
 }
 .dark .date-picker-root .MuiOutlinedInput-root .MuiOutlinedInput-input {
-  color: rgb(248 250 252);
+  color: rgb(248 250 252) !important;
+  -webkit-text-fill-color: rgb(248 250 252) !important;
 }
-.dark .date-picker-root .MuiOutlinedInput-root fieldset {
-  border-color: rgb(71 85 105);
+.dark .date-picker-root .MuiOutlinedInput-root fieldset,
+.dark .date-picker-root .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline {
+  border-color: rgb(71 85 105) !important;
 }
-.dark .date-picker-root .MuiOutlinedInput-root:hover fieldset {
-  border-color: rgb(100 116 139);
+.dark .date-picker-root .MuiOutlinedInput-root:hover fieldset,
+.dark .date-picker-root .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: rgb(100 116 139) !important;
 }
 .dark .date-picker-root .MuiOutlinedInput-root .MuiOutlinedInput-input::placeholder {
-  color: rgb(148 163 184);
+  color: rgb(148 163 184) !important;
   opacity: 1;
 }
 .dark .date-picker-root .MuiInputAdornment-root .MuiIconButton-root {
-  color: rgb(203 213 225);
+  color: rgb(203 213 225) !important;
 }
 .dark .date-picker-root .MuiInputAdornment-root .MuiIconButton-root:hover {
-  color: rgb(248 250 252);
-  background-color: rgba(255, 255, 255, 0.08);
+  color: rgb(248 250 252) !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 :root {
