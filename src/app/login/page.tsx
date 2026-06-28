@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -31,7 +30,7 @@ export default function LoginPage() {
       const message = err instanceof Error ? err.message : "Login failed";
       if (message.includes("configuration-not-found")) {
         setError(
-          "Firebase Auth not configured. In Firebase Console: enable Authentication, turn on Email/Password, and add 'localhost' to Authorized domains."
+          "Firebase Auth not configured. In Firebase Console: enable Authentication, turn on Email/Password, and add 'localhost' to Authorized domains.",
         );
       } else {
         setError(message);
@@ -42,84 +41,119 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-sky-950 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950 p-4 sm:p-6">
-      <div className="absolute inset-0 opacity-[0.05] bg-grid-pattern-auth" aria-hidden />
-      <div className="card w-full max-w-md relative z-10 shadow-soft border-white/10 bg-white/95 backdrop-blur-sm dark:bg-slate-800/95 dark:border-sky-500/20 animate-slide-up">
-        <div className="flex justify-center mb-6">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-sky-100 dark:bg-sky-900/50 overflow-hidden">
-            <Image src="/icons/logo.png" alt="Petrol Pump" width={80} height={80} className="object-contain" />
-          </div>
+    <main className="min-h-screen grid lg:grid-cols-2">
+      {/* Brand panel */}
+      <aside className="hidden lg:flex flex-col justify-between p-12 bg-ink-900 text-[#faf8f5] relative overflow-hidden">
+        <Link href="/" className="flex items-center gap-2.5 serif text-[22px]">
+          <span className="inline-flex items-center justify-center w-7 h-7 rounded-[7px] bg-accent text-white text-[17px] serif">
+            P
+          </span>
+          Pumpline
+        </Link>
+        <div>
+          <h2 className="serif text-[clamp(34px,4vw,52px)] leading-[1.05] mb-5">
+            Every litre,
+            <br />
+            every shift,
+            <br />
+            <em className="text-ink-400 not-italic" style={{ fontStyle: "italic" }}>
+              accounted for.
+            </em>
+          </h2>
+          <p className="text-[#94a3b8] text-sm max-w-sm leading-relaxed">
+            Sign in to close the day cleanly — meter readings, payments, stock and
+            shifts, all reconciled in one ledger.
+          </p>
         </div>
-        <h1 className="text-xl sm:text-2xl font-bold text-center text-slate-800 dark:text-slate-100 mb-6">
-          Sign In
-        </h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="login-email" className="label">
-              Email
-            </label>
-            <input
-              id="login-email"
-              type="email"
-              className="input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              aria-label="Email"
-            />
-          </div>
-          <div>
-            <label htmlFor="login-password" className="label">
-              Password
-            </label>
-            <input
-              id="login-password"
-              type="password"
-              className="input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              aria-label="Password"
-            />
-          </div>
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2 dark:text-red-400 dark:bg-red-900/20 dark:border-red-800">
-              {error}
-            </p>
-          )}
-          <button
-            type="submit"
-            className="btn btn-primary w-full min-h-[48px] inline-flex items-center justify-center gap-2"
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <span
-                  className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0"
-                  aria-hidden
-                />
-                Signing in…
-              </>
-            ) : (
-              "Sign In"
-            )}
-          </button>
-        </form>
-        <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
-          Don&apos;t have an account?{" "}
+        <p className="text-xs text-[#64748b]">
+          © 2026 Pumpline · Built for the Indian forecourt
+        </p>
+      </aside>
+
+      {/* Form panel */}
+      <section className="flex items-center justify-center p-6 sm:p-10 bg-bg">
+        <div className="w-full max-w-[400px] animate-slide-up">
           <Link
-            href="/signup"
-            className="text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 font-semibold hover:underline"
+            href="/"
+            className="lg:hidden inline-flex items-center gap-2.5 serif text-[22px] mb-10"
           >
-            Sign up
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-[7px] bg-accent text-white text-[17px] serif">
+              P
+            </span>
+            Pumpline
           </Link>
-        </p>
-        <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-500">
-          <Link href="/" className="text-sky-500 hover:underline dark:text-sky-400">
-            Back to home
-          </Link>
-        </p>
-      </div>
+          <h1 className="serif text-[32px] leading-tight mb-1">Welcome back</h1>
+          <p className="text-sm text-ink-500 mb-7">
+            Sign in to your pump dashboard.
+          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="field">
+              <label htmlFor="login-email" className="field-label">
+                Email
+              </label>
+              <input
+                id="login-email"
+                type="email"
+                className="input"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                aria-label="Email"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="login-password" className="field-label">
+                Password
+              </label>
+              <input
+                id="login-password"
+                type="password"
+                className="input"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                aria-label="Password"
+              />
+            </div>
+            {error && (
+              <p className="text-[13px] rounded-[7px] px-3 py-2.5 bg-[var(--danger-soft)] border border-[#fecaca] text-[#b91c1c]">
+                {error}
+              </p>
+            )}
+            <button
+              type="submit"
+              className="btn btn-primary btn-lg w-full"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span
+                    className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0"
+                    aria-hidden
+                  />
+                  Signing in…
+                </>
+              ) : (
+                "Sign in"
+              )}
+            </button>
+          </form>
+
+          <div className="my-6 divider" />
+          <p className="text-center text-sm text-ink-500">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/signup"
+              className="text-ink-900 font-medium underline underline-offset-2"
+            >
+              Sign up free
+            </Link>
+          </p>
+        </div>
+      </section>
     </main>
   );
 }

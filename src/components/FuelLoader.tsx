@@ -52,27 +52,27 @@ export default function FuelLoader({
       <div className="relative inline-flex items-center justify-center">
         {/* Spinning gradient ring */}
         <div
-          className={`absolute rounded-full border-2 border-transparent border-t-sky-500 border-r-amber-400 border-b-sky-600 border-l-amber-500 animate-spin ${s.ring}`}
+          className={`absolute rounded-full border-2 border-transparent border-t-[#b45309] border-r-[#eab308] border-b-[#92400e] border-l-[#d97706] animate-spin ${s.ring}`}
         />
         {/* Inner subtle ring */}
         <div
-          className={`absolute rounded-full border border-sky-200/80 dark:border-sky-700/80 animate-spin [animation-duration:2.5s] [animation-direction:reverse] ${s.innerRing}`}
+          className={`absolute rounded-full border border-[#f0dcb0] animate-spin [animation-duration:2.5s] [animation-direction:reverse] ${s.innerRing}`}
         />
         {/* Fuel icon with pulse + glow */}
         <div
-          className={`relative flex items-center justify-center rounded-full bg-gradient-to-br from-sky-50 to-amber-50/80 dark:from-sky-900/50 dark:to-amber-900/30 animate-fuel-pulse animate-fuel-glow ${s.iconBox}`}
+          className={`relative flex items-center justify-center rounded-full bg-gradient-to-br from-[#fffbeb] to-[#fcf0d2] animate-fuel-pulse animate-fuel-glow ${s.iconBox}`}
         >
           <Fuel
-            className="text-sky-600 dark:text-sky-400"
+            className="text-[#b45309]"
             size={s.iconSize}
             strokeWidth={2.2}
             aria-hidden
           />
         </div>
         {/* Drip dots */}
-        <span className="absolute bottom-0 left-1/2 -ml-0.5 -mb-0.5 w-1 h-1 rounded-full bg-sky-400 animate-fuel-drip" />
-        <span className="absolute bottom-0 left-[calc(50%-8px)] -ml-0.5 -mb-0.5 w-1 h-1 rounded-full bg-amber-400 animate-fuel-drip fuel-drip-delay-1" />
-        <span className="absolute bottom-0 left-[calc(50%+8px)] -ml-0.5 -mb-0.5 w-1 h-1 rounded-full bg-sky-500 animate-fuel-drip fuel-drip-delay-2" />
+        <span className="absolute bottom-0 left-1/2 -ml-0.5 -mb-0.5 w-1 h-1 rounded-full bg-[#d97706] animate-fuel-drip" />
+        <span className="absolute bottom-0 left-[calc(50%-8px)] -ml-0.5 -mb-0.5 w-1 h-1 rounded-full bg-[#eab308] animate-fuel-drip fuel-drip-delay-1" />
+        <span className="absolute bottom-0 left-[calc(50%+8px)] -ml-0.5 -mb-0.5 w-1 h-1 rounded-full bg-[#b45309] animate-fuel-drip fuel-drip-delay-2" />
       </div>
     </div>
   );

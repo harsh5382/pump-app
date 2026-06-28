@@ -29,11 +29,14 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { Fuel, TrendingUp, Droplets, Truck, Wallet } from "lucide-react";
+import { Truck } from "lucide-react";
 import FuelLoader from "@/components/FuelLoader";
 import { useMediaQuery } from "@/lib/useMediaQuery";
+import { StatTile, EmptyState } from "@/components/ui";
 
 const today = new Date().toISOString().split("T")[0];
+
+const CHART_COLORS = ["#b45309", "#1e293b", "#eab308", "#047857", "#0ea5e9"];
 
 export default function Dashboard() {
   const [tanks, setTanks] = useState<Tank[]>([]);
@@ -48,21 +51,15 @@ export default function Dashboard() {
   useEffect(() => {
     async function load() {
       try {
-        const [
-          tanksRes,
-          readingsRes,
-          deliveriesRes,
-          paymentsRes,
-          nozzlesRes,
-          fuelRes,
-        ] = await Promise.all([
-          getTanks(),
-          getMeterReadingsByDate(today),
-          getTankerDeliveriesByDate(today),
-          getPaymentsByDate(today),
-          getNozzles(),
-          getFuelTypes(),
-        ]);
+        const [tanksRes, readingsRes, deliveriesRes, paymentsRes, nozzlesRes, fuelRes] =
+          await Promise.all([
+            getTanks(),
+            getMeterReadingsByDate(today),
+            getTankerDeliveriesByDate(today),
+            getPaymentsByDate(today),
+            getNozzles(),
+            getFuelTypes(),
+          ]);
         setTanks(tanksRes);
         setReadings(readingsRes);
         setDeliveries(deliveriesRes);
@@ -80,8 +77,7 @@ export default function Dashboard() {
   readings.forEach((r) => {
     const nozzle = nozzles.find((n) => n.id === r.nozzleId);
     if (nozzle) {
-      const name =
-        fuelTypes.find((f) => f.id === nozzle.fuelTypeId)?.name ?? "Unknown";
+      const name = fuelTypes.find((f) => f.id === nozzle.fuelTypeId)?.name ?? "Unknown";
       fuelSoldByType[name] = (fuelSoldByType[name] ?? 0) + (r.fuelSold ?? 0);
     }
   });
@@ -89,161 +85,152 @@ export default function Dashboard() {
   const totalPetrol = fuelSoldByType["Petrol"] ?? 0;
   const totalDiesel = fuelSoldByType["Diesel"] ?? 0;
   const totalRevenue = payments.reduce((s, p) => s + p.amount, 0);
-  const totalTankerReceived = deliveries.reduce(
-    (s, d) => s + d.quantityLiters,
-    0,
-  );
+  const totalTankerReceived = deliveries.reduce((s, d) => s + d.quantityLiters, 0);
   const totalStock = tanks.reduce((s, t) => s + t.currentStockLiters, 0);
+
+  // Low-stock tanks (< 15% of capacity)
+  const lowStockTanks = tanks.filter(
+    (t) => t.capacityLiters > 0 && t.currentStockLiters / t.capacityLiters < 0.15,
+  );
 
   const chartData = Object.entries(fuelSoldByType).map(([name, value]) => ({
     name,
     value,
   }));
-  const COLORS = ["#eab308", "#1e293b", "#0ea5e9"];
+
+  const greeting = (() => {
+    const h = new Date().getHours();
+    return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+  })();
 
   if (loading) {
     return <FuelLoader className="min-h-[40vh]" />;
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <div>
-        <h1 className="page-title">Dashboard</h1>
-        <p className="page-subtitle">{formatDate(today)}</p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card flex items-center gap-4">
-          <div className="rounded-2xl bg-amber-100 dark:bg-amber-900/40 p-3.5 shrink-0">
-            <Fuel className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              Petrol sold today
-            </p>
-            <p className="text-xl font-bold text-slate-800 dark:text-slate-100 truncate">
-              {formatNumber(totalPetrol)} L
-            </p>
-          </div>
-        </div>
-        <div className="card flex items-center gap-4">
-          <div className="rounded-2xl bg-slate-100 dark:bg-slate-700/60 p-3.5 shrink-0">
-            <Droplets className="h-6 w-6 text-slate-600 dark:text-slate-300" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              Diesel sold today
-            </p>
-            <p className="text-xl font-bold text-slate-800 dark:text-slate-100 truncate">
-              {formatNumber(totalDiesel)} L
-            </p>
-          </div>
-        </div>
-        <div className="card flex items-center gap-4">
-          <div className="rounded-2xl bg-emerald-100 dark:bg-emerald-900/40 p-3.5 shrink-0">
-            <TrendingUp className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total revenue</p>
-            <p className="text-xl font-bold text-slate-800 dark:text-slate-100 truncate">
-              {formatCurrency(totalRevenue)}
-            </p>
-          </div>
-        </div>
-        <div className="card flex items-center gap-4">
-          <div className="rounded-2xl bg-sky-100 dark:bg-sky-900/40 p-3.5 shrink-0">
-            <Wallet className="h-6 w-6 text-sky-600 dark:text-sky-400" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              Stock remaining
-            </p>
-            <p className="text-xl font-bold text-slate-800 dark:text-slate-100 truncate">
-              {formatNumber(totalStock)} L
-            </p>
-          </div>
+    <div className="page">
+      <div className="page-head">
+        <div>
+          <h1 className="page-title">
+            {greeting} <em>— today&apos;s pump.</em>
+          </h1>
+          <p className="page-sub">{formatDate(today)}</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card">
-          <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
-            Today&apos;s fuel sales
-          </h2>
+      {lowStockTanks.length > 0 && (
+        <div className="banner banner-danger">
+          <span>
+            <strong>{lowStockTanks.length}</strong> tank
+            {lowStockTanks.length > 1 ? "s" : ""} low on stock —{" "}
+            {lowStockTanks.map((t) => t.name).join(", ")}. Schedule a delivery.
+          </span>
+        </div>
+      )}
+
+      {/* Stat tiles */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6 sm:mb-8">
+        <StatTile label="Petrol sold" value={`${formatNumber(totalPetrol)} L`} note="Today" />
+        <StatTile label="Diesel sold" value={`${formatNumber(totalDiesel)} L`} note="Today" />
+        <StatTile
+          label="Revenue"
+          value={formatCurrency(totalRevenue)}
+          note="Collected today"
+        />
+        <StatTile
+          label="Stock remaining"
+          value={`${formatNumber(totalStock)} L`}
+          note={`${tanks.length} tank${tanks.length === 1 ? "" : "s"}`}
+        />
+        <StatTile
+          label="Tanker received"
+          value={`${formatNumber(totalTankerReceived)} L`}
+          note="Today"
+        />
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div className="card lg:col-span-2">
+          <div className="card-head">
+            <div>
+              <div className="card-title">Today&apos;s fuel sales</div>
+              <div className="card-subtitle">Litres by fuel type</div>
+            </div>
+          </div>
           {chartData.length ? (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={chartData}>
-                <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
-                <YAxis stroke="#64748b" fontSize={12} />
+                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={{ stroke: "#e8e3dc" }} />
+                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip
+                  cursor={{ fill: "rgba(15,23,42,0.04)" }}
                   contentStyle={{
-                    borderRadius: "12px",
-                    border: "1px solid #e2e8f0",
+                    borderRadius: "10px",
+                    border: "1px solid #e8e3dc",
+                    fontSize: "12px",
+                    boxShadow: "0 8px 24px rgba(15,23,42,0.08)",
                   }}
                   formatter={(v: number) => [formatNumber(v) + " L", "Sold"]}
                 />
-                <Bar
-                  dataKey="value"
-                  fill="#0ea5e9"
-                  radius={[6, 6, 0, 0]}
-                  name="Liters"
-                />
+                <Bar dataKey="value" fill="#b45309" radius={[6, 6, 0, 0]} name="Litres" />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-slate-500 dark:text-slate-400 py-8 text-center">
-              No meter readings for today yet.
-            </p>
+            <EmptyState title="No meter readings yet" hint="Enter today's readings to see sales." />
           )}
         </div>
+
         <div className="card">
-          <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
-            Stock by tank
-          </h2>
+          <div className="card-head">
+            <div>
+              <div className="card-title">Stock by tank</div>
+              <div className="card-subtitle">Current litres</div>
+            </div>
+          </div>
           {tanks.length ? (
             <ResponsiveContainer width="100%" height={240}>
               <PieChart>
                 <Pie
-                  data={tanks.map((t) => ({
-                    name: t.name,
-                    value: t.currentStockLiters,
-                  }))}
+                  data={tanks.map((t) => ({ name: t.name, value: t.currentStockLiters }))}
                   cx="50%"
                   cy="50%"
                   innerRadius={50}
                   outerRadius={80}
                   paddingAngle={2}
                   dataKey="value"
-                  label={({ name, value }) =>
-                    `${name}: ${formatNumber(value)} L`
-                  }
+                  label={({ name, value }) => `${name}: ${formatNumber(value as number)} L`}
+                  style={{ fontSize: "11px" }}
                 >
                   {tanks.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    borderRadius: "12px",
-                    border: "1px solid #e2e8f0",
+                    borderRadius: "10px",
+                    border: "1px solid #e8e3dc",
+                    fontSize: "12px",
+                    boxShadow: "0 8px 24px rgba(15,23,42,0.08)",
                   }}
                   formatter={(v: number) => [formatNumber(v) + " L", "Stock"]}
                 />
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-slate-500 dark:text-slate-400 py-8 text-center">
-              No tanks added yet.
-            </p>
+            <EmptyState title="No tanks added yet" hint="Add a tank to track stock." />
           )}
         </div>
       </div>
 
+      {/* Tanker received */}
       <div className="card">
-        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
-          <Truck className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-          Tanker received today
-        </h2>
+        <div className="card-head">
+          <div className="flex items-center gap-2">
+            <Truck className="h-5 w-5 text-ink-500" />
+            <div className="card-title">Tanker received today</div>
+          </div>
+        </div>
         {deliveries.length ? (
           isMobile ? (
             <ul className="space-y-3 list-none p-0 m-0">
@@ -252,14 +239,16 @@ export default function Dashboard() {
                   <div className="mobile-list-card">
                     <p className="mobile-list-card-title">{d.tankerCompany}</p>
                     <p className="mobile-list-card-row">Invoice: {d.invoiceNumber}</p>
-                    <p className="mobile-list-card-row">Quantity: {formatNumber(d.quantityLiters)} L</p>
+                    <p className="mobile-list-card-row">
+                      Quantity: {formatNumber(d.quantityLiters)} L
+                    </p>
                   </div>
                 </li>
               ))}
             </ul>
           ) : (
             <div className="table-container">
-              <table className="table-default">
+              <table className="table">
                 <thead>
                   <tr>
                     <th>Company</th>
@@ -272,7 +261,7 @@ export default function Dashboard() {
                     <tr key={d.id}>
                       <td>{d.tankerCompany}</td>
                       <td>{d.invoiceNumber}</td>
-                      <td>{formatNumber(d.quantityLiters)} L</td>
+                      <td className="num">{formatNumber(d.quantityLiters)} L</td>
                     </tr>
                   ))}
                 </tbody>
@@ -280,7 +269,7 @@ export default function Dashboard() {
             </div>
           )
         ) : (
-          <p className="text-slate-500 dark:text-slate-400">No tanker deliveries for today.</p>
+          <EmptyState title="No tanker deliveries today" />
         )}
       </div>
     </div>

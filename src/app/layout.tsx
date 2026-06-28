@@ -1,11 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { ClientProviders } from "@/components/ClientProviders";
 
-const plusJakarta = Plus_Jakarta_Sans({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-sans-google",
+  display: "swap",
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-serif-google",
   display: "swap",
 });
 
@@ -31,7 +39,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0ea5e9",
+  themeColor: "#b45309",
 };
 
 export default function RootLayout({
@@ -40,14 +48,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={plusJakarta.variable} suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){var k='petrol-pump-theme';var s=localStorage.getItem(k);var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var dark=(s==='dark')||(s!=='light'&&d);document.documentElement.classList.toggle('dark',dark);})();`,
-          }}
-        />
-      </head>
+    <html
+      lang="en"
+      className={`${inter.variable} ${instrumentSerif.variable}`}
+      suppressHydrationWarning
+    >
       <body className="font-sans" suppressHydrationWarning>
         <ClientProviders>{children}</ClientProviders>
       </body>

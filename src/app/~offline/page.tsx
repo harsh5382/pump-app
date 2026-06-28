@@ -2,11 +2,11 @@
 
 export default function OfflinePage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-bg px-4">
       <div className="text-center max-w-sm">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-sky-100 dark:bg-sky-900/50 flex items-center justify-center">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-accent-soft flex items-center justify-center">
           <svg
-            className="w-8 h-8 text-sky-600 dark:text-sky-400"
+            className="w-8 h-8 text-accent"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -19,16 +19,14 @@ export default function OfflinePage() {
             />
           </svg>
         </div>
-        <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-2">
-          You&apos;re offline
-        </h1>
-        <p className="text-slate-600 dark:text-slate-400 mb-6">
+        <h1 className="serif text-[28px] text-ink-900 mb-2">You&apos;re offline</h1>
+        <p className="text-ink-500 mb-6 text-sm">
           Check your connection and try again. Some features need the internet.
         </p>
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="px-4 py-2 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600"
+          className="btn btn-primary"
         >
           Retry
         </button>

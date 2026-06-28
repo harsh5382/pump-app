@@ -217,7 +217,7 @@ export default function FuelTypesPage() {
                           <button
                             type="button"
                             onClick={() => startEdit(f)}
-                            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-sky-600 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
+                            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-accent min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                             aria-label="Edit"
                           >
                             <Pencil className="h-4 w-4" />

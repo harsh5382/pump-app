@@ -265,7 +265,7 @@ export default function MeterReadingsPage() {
                       <td>
                         <button
                           type="button"
-                          className="p-2 rounded-lg bg-sky-600 text-white hover:bg-sky-500 disabled:opacity-50 inline-flex items-center justify-center shrink-0"
+                          className="p-2 rounded-lg bg-accent text-white hover:brightness-110 disabled:opacity-50 inline-flex items-center justify-center shrink-0"
                           disabled={saving === n.id}
                           onClick={() => handleSave(n.id)}
                           aria-label={saving === n.id ? "Saving…" : "Save"}

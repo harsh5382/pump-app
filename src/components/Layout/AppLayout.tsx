@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
+import { Avatar } from "@/components/ui";
 import {
   LayoutDashboard,
   Fuel,
@@ -20,25 +20,20 @@ import {
   Bell,
   Settings,
   LogOut,
-  ChevronDown,
   Menu,
   X,
-  Moon,
-  Sun,
+  type LucideIcon,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useTheme } from "@/context/ThemeContext";
 
-const nav = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+type NavItem = { href: string; label: string; icon: LucideIcon };
+
+const nav: NavItem[] = [
+  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/tanks", label: "Tanks", icon: Container },
   { href: "/dashboard/nozzles", label: "Nozzles", icon: Gauge },
   { href: "/dashboard/meter-readings", label: "Meter Readings", icon: Fuel },
-  {
-    href: "/dashboard/tanker-deliveries",
-    label: "Tanker Deliveries",
-    icon: Truck,
-  },
+  { href: "/dashboard/tanker-deliveries", label: "Tanker Deliveries", icon: Truck },
   { href: "/dashboard/sales", label: "Sales", icon: Receipt },
   { href: "/dashboard/payments", label: "Payments", icon: CreditCard },
   { href: "/dashboard/expenses", label: "Expenses", icon: Wallet },
@@ -48,18 +43,35 @@ const nav = [
   { href: "/dashboard/notifications", label: "Alerts", icon: Bell },
 ];
 
-const adminNav = [
+const adminNav: NavItem[] = [
   { href: "/dashboard/fuel-types", label: "Fuel Types", icon: Fuel },
   { href: "/dashboard/users", label: "Users", icon: Users },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
+// Topbar title + subtitle per route
+const TITLES: Record<string, [string, string]> = {
+  "/dashboard": ["Overview", "Today's pump at a glance"],
+  "/dashboard/tanks": ["Tanks", "Storage tanks & daily dips"],
+  "/dashboard/nozzles": ["Nozzles", "Dispensing machines"],
+  "/dashboard/meter-readings": ["Meter Readings", "Daily fuel sales by nozzle"],
+  "/dashboard/tanker-deliveries": ["Tanker Deliveries", "Incoming stock"],
+  "/dashboard/sales": ["Sales", "Daily sales summary"],
+  "/dashboard/payments": ["Payments", "Collections & reconciliation"],
+  "/dashboard/expenses": ["Expenses", "Outlet costs"],
+  "/dashboard/shifts": ["Shifts", "Staff shifts & cash"],
+  "/dashboard/stock": ["Stock", "System vs dip reconciliation"],
+  "/dashboard/reports": ["Reports", "Exports & analytics"],
+  "/dashboard/notifications": ["Alerts", "Stock, meter & payment alerts"],
+  "/dashboard/fuel-types": ["Fuel Types", "Petrol, diesel & more"],
+  "/dashboard/users": ["Users", "Team & roles"],
+  "/dashboard/settings": ["Settings", "Outlet preferences"],
+};
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, signOut, hasRole } = useAuth();
-  const { theme, toggleTheme } = useTheme();
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleSignOut = async () => {
@@ -72,7 +84,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setSidebarOpen(false);
   }, [pathname]);
 
-  // Lock background scroll when mobile menu is open
   useEffect(() => {
     if (sidebarOpen) {
       const prev = document.body.style.overflow;
@@ -92,189 +103,140 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return path === base || path.startsWith(base + "/");
   };
 
-  const navLinks = (
+  const cleanPath = pathname.replace(/\/$/, "") || "/dashboard";
+  const [title, sub] = TITLES[cleanPath] ?? ["Dashboard", ""];
+
+  const renderItem = (item: NavItem) => {
+    const active = isActive(item.href);
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={closeSidebar}
+        className={cn(
+          "flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm font-medium transition-colors",
+          active
+            ? "bg-accent text-white"
+            : "text-ink-700 hover:bg-[var(--bg-overlay)] hover:text-ink-900",
+        )}
+      >
+        <item.icon className="h-4 w-4 shrink-0" />
+        {item.label}
+      </Link>
+    );
+  };
+
+  const sidebarInner = (
     <>
-      {nav.map((item) => {
-        const active = isActive(item.href);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={closeSidebar}
-            className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all border-l-2",
-              active
-                ? "bg-sky-100 text-sky-700 border-sky-500 shadow-sm dark:bg-sky-900/60 dark:text-sky-200 dark:border-sky-400"
-                : "border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-slate-100",
-            )}
-          >
-            <item.icon
-              className={cn(
-                "h-4 w-4 shrink-0",
-                active ? "text-sky-600 dark:text-sky-400" : "text-slate-500 dark:text-slate-400",
-              )}
-            />
-            {item.label}
-          </Link>
-        );
-      })}
-      {hasRole("admin") && (
-        <>
-          <div className="my-3 border-t border-slate-200 dark:border-slate-600 pt-3">
-            <p className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider dark:text-slate-500">
-              Admin
-            </p>
+      <div className="flex items-center gap-2.5 px-3 pb-5 mb-3 border-b border-line">
+        <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-accent text-white serif text-xl">
+          P
+        </span>
+        <div>
+          <div className="serif text-xl leading-none">Pumpline</div>
+          <div className="text-[10px] uppercase tracking-[0.12em] text-ink-500 mt-0.5">
+            Fuel Ledger
           </div>
-          {adminNav.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={closeSidebar}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all border-l-2",
-                  active
-                    ? "bg-sky-100 text-sky-700 border-sky-500 shadow-sm dark:bg-sky-900/60 dark:text-sky-200 dark:border-sky-400"
-                    : "border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-slate-100",
-                )}
-              >
-                <item.icon
-                  className={cn(
-                    "h-4 w-4 shrink-0",
-                    active ? "text-sky-600 dark:text-sky-400" : "text-slate-500 dark:text-slate-400",
-                  )}
-                />
-                {item.label}
-              </Link>
-            );
-          })}
-        </>
-      )}
+        </div>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto space-y-0.5 pr-0.5">
+        {nav.map(renderItem)}
+        {hasRole("admin") && (
+          <>
+            <div className="px-3 pt-5 pb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-ink-500">
+              Admin
+            </div>
+            {adminNav.map(renderItem)}
+          </>
+        )}
+      </nav>
+
+      <div className="mt-auto pt-4 border-t border-line">
+        <div className="flex items-center gap-2.5 px-1">
+          <Avatar name={profile?.displayName ?? profile?.email ?? "User"} size="sm" />
+          <div className="flex-1 min-w-0">
+            <div className="text-[13px] font-medium truncate">
+              {profile?.displayName ?? profile?.email}
+            </div>
+            <div className="text-[11px] text-ink-500 capitalize">
+              {profile?.role ?? "user"}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="icon-btn w-8 h-8"
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
     </>
   );
 
   return (
-    <div className="min-h-screen flex bg-[var(--surface)]">
+    <div className="min-h-screen bg-bg">
+      {/* Mobile scrim */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-30 lg:hidden backdrop-blur-sm dark:bg-black/60"
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 lg:hidden"
           onClick={closeSidebar}
           aria-hidden
         />
       )}
+
+      {/* Sidebar */}
       <aside
         className={cn(
-          "w-64 border-r border-slate-200/80 bg-white flex flex-col fixed h-full z-40 transition-transform duration-200 ease-out shadow-card dark:border-slate-700/60 dark:bg-slate-900",
+          "fixed inset-y-0 left-0 w-60 z-50 flex flex-col bg-bg border-r border-line px-4 py-6 transition-transform duration-200 ease-out",
           "lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
-        <div className="p-4 border-b border-slate-200/80 dark:border-slate-700 flex items-center justify-between">
-          <Link
-            href="/dashboard"
-            onClick={closeSidebar}
-            className="flex items-center gap-2 font-bold text-slate-800 text-lg dark:text-slate-100"
-          >
-            <Image src="/icons/logo.png" alt="" width={40} height={40} className="object-contain" />
-            Petrol Pump
-          </Link>
-          <button
-            type="button"
-            onClick={closeSidebar}
-            className="lg:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-            aria-label="Close menu"
-          >
-            <X className="h-5 w-5 text-slate-600 dark:text-slate-300" />
-          </button>
-        </div>
-        <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">{navLinks}</nav>
+        <button
+          type="button"
+          onClick={closeSidebar}
+          className="lg:hidden absolute top-4 right-4 icon-btn w-8 h-8"
+          aria-label="Close menu"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        {sidebarInner}
       </aside>
-      <div className="flex-1 flex flex-col min-h-screen lg:pl-64 min-w-0">
-        <header className="h-14 border-b border-slate-200/80 bg-white flex items-center justify-between px-4 sm:px-6 shrink-0 shadow-card dark:border-slate-700 dark:bg-slate-900">
+
+      {/* Main */}
+      <div className="lg:pl-60 min-w-0 flex flex-col min-h-screen">
+        <header className="sticky top-0 z-30 h-16 flex items-center gap-4 px-5 sm:px-8 bg-bg/90 backdrop-blur-md border-b border-line">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            className="lg:hidden icon-btn w-9 h-9"
             aria-label="Open menu"
           >
-            <Menu className="h-6 w-6 text-slate-700 dark:text-slate-200" />
+            <Menu className="h-5 w-5" />
           </button>
-          <h1 className="text-base sm:text-lg font-semibold text-slate-800 capitalize truncate ml-2 lg:ml-0 dark:text-slate-100">
-            {profile?.role ?? "User"}
-          </h1>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
-            >
-              {theme === "light" ? (
-                <Moon className="h-5 w-5 text-slate-600 dark:text-slate-300" />
-              ) : (
-                <Sun className="h-5 w-5 text-sky-400" />
-              )}
-            </button>
-            <div className="relative">
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-1 sm:gap-2 rounded-xl px-2 sm:px-3 py-2 hover:bg-slate-50 transition-colors min-w-0 border border-transparent hover:border-slate-200 dark:hover:bg-slate-700 dark:hover:border-slate-600"
-              >
-                <span className="text-sm font-medium truncate max-w-[120px] sm:max-w-none text-slate-700 dark:text-slate-200">
-                  {profile?.displayName ?? profile?.email}
-                </span>
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400 transition-transform",
-                    userMenuOpen && "rotate-180",
-                  )}
-                />
-              </button>
-              {userMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setUserMenuOpen(false)}
-                    aria-hidden
-                  />
-                  <div className="absolute right-0 top-full mt-2 w-52 rounded-xl border border-slate-200 bg-white py-1.5 shadow-soft z-20 animate-fade-in dark:border-slate-600 dark:bg-slate-800">
-                    <Link
-                      href="/dashboard/notifications"
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 rounded-lg mx-1 dark:text-slate-200 dark:hover:bg-slate-700"
-                      onClick={() => setUserMenuOpen(false)}
-                    >
-                      <Bell className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                      Alerts
-                    </Link>
-                    {hasRole("admin") && (
-                      <Link
-                        href="/dashboard/users"
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 rounded-lg mx-1 dark:text-slate-200 dark:hover:bg-slate-700"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        <Settings className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                        Users
-                      </Link>
-                    )}
-                    <div className="my-1 border-t border-slate-100 dark:border-slate-600" />
-                    <button
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        handleSignOut();
-                      }}
-                      className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg mx-1 dark:text-red-400 dark:hover:bg-red-900/30"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Sign Out
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+          <div className="flex-1 min-w-0">
+            <div className="serif text-[22px] leading-none truncate">{title}</div>
+            {sub && (
+              <div className="text-xs text-ink-500 mt-1 truncate">{sub}</div>
+            )}
           </div>
+          <Link
+            href="/dashboard/notifications"
+            className="icon-btn w-9 h-9"
+            aria-label="Alerts"
+            title="Alerts"
+          >
+            <Bell className="h-4 w-4" />
+          </Link>
         </header>
-        <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">{children}</main>
+
+        <main className="flex-1 px-5 sm:px-8 py-6 sm:py-8 overflow-x-hidden">
+          {children}
+        </main>
       </div>
     </div>
   );

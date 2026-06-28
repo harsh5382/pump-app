@@ -259,7 +259,7 @@ export default function UsersPage() {
                         <td className="capitalize">{u.role}</td>
                         <td>
                           <div className="flex gap-1">
-                            <button type="button" onClick={() => startEdit(u)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-sky-600 dark:hover:bg-slate-700 dark:text-slate-400" aria-label="Edit" title="Edit"><Pencil className="h-4 w-4" /></button>
+                            <button type="button" onClick={() => startEdit(u)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-accent dark:hover:bg-slate-700 dark:text-slate-400" aria-label="Edit" title="Edit"><Pencil className="h-4 w-4" /></button>
                             <button type="button" onClick={() => setDeleteTarget(u)} disabled={u.uid === currentUid} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-600 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed dark:hover:bg-red-900/20" aria-label="Delete" title={u.uid === currentUid ? "Cannot delete yourself" : "Delete user"}><Trash2 className="h-4 w-4" /></button>
                           </div>
                         </td>

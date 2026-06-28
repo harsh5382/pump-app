@@ -1,7 +1,6 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: "class",
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -11,23 +10,47 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        serif: ["var(--font-serif)", "Georgia", "serif"],
       },
       colors: {
+        bg: "var(--bg)",
+        "bg-elev": "var(--bg-elev)",
+        "bg-sunken": "var(--bg-sunken)",
+        warm: "var(--warm)",
+        ink: {
+          900: "var(--ink-900)",
+          700: "var(--ink-700)",
+          500: "var(--ink-500)",
+          400: "var(--ink-400)",
+          300: "var(--ink-300)",
+          200: "var(--ink-200)",
+          100: "var(--ink-100)",
+        },
+        accent: {
+          DEFAULT: "var(--accent)",
+          ink: "var(--accent-ink)",
+          soft: "var(--accent-soft)",
+        },
+        line: "var(--border)",
+        "line-strong": "var(--border-strong)",
         fuel: {
           petrol: "#eab308",
           diesel: "#1e293b",
-          accent: "#0ea5e9",
         },
       },
       boxShadow: {
-        soft: "0 2px 15px -3px rgba(0,0,0,0.07), 0 10px 20px -2px rgba(0,0,0,0.04)",
-        card: "0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.04)",
-        cardHover: "0 4px 20px -2px rgba(0,0,0,0.08), 0 2px 8px -2px rgba(0,0,0,0.04)",
-        glow: "0 0 40px -10px rgba(14, 165, 233, 0.25)",
+        sm: "0 1px 2px rgba(15,23,42,0.04)",
+        md: "0 1px 3px rgba(15,23,42,0.06), 0 8px 24px rgba(15,23,42,0.04)",
+        lg: "0 4px 12px rgba(15,23,42,0.08), 0 24px 48px rgba(15,23,42,0.08)",
       },
       borderRadius: {
-        "2xl": "1rem",
-        "3xl": "1.25rem",
+        sm: "6px",
+        md: "10px",
+        lg: "14px",
+        xl: "20px",
+      },
+      transitionTimingFunction: {
+        ease: "cubic-bezier(0.2, 0.6, 0.2, 1)",
       },
       animation: {
         "fade-in": "fadeIn 0.3s ease-out",

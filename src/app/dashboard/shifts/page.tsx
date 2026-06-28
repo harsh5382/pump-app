@@ -342,7 +342,7 @@ export default function ShiftsPage() {
                           {isAdmin && (
                             <td>
                               <div className="flex gap-1">
-                                <button type="button" onClick={() => startEdit(s)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-sky-600" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
+                                <button type="button" onClick={() => startEdit(s)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-accent" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
                                 <button type="button" onClick={() => setDeleteTarget(s)} className="btn-icon-delete" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
                               </div>
                             </td>

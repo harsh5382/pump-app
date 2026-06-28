@@ -86,7 +86,7 @@ export default function SalesPage() {
         </div>
         <div className="card">
           <h2 className="card-header">Payments received</h2>
-          <p className="text-2xl font-bold text-sky-600">{formatCurrency(totalPayments)}</p>
+          <p className="text-2xl font-bold text-accent">{formatCurrency(totalPayments)}</p>
           <p className="text-sm text-slate-500 mt-2">
             Daily entry should match total sale. System will warn on mismatch.
           </p>

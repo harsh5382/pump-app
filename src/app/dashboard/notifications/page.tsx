@@ -65,7 +65,7 @@ export default function NotificationsPage() {
                 {n.type === "payment_mismatch" || n.type === "low_stock" || n.type === "meter_not_entered" ? (
                   <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 ) : (
-                  <Info className="h-5 w-5 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" />
+                  <Info className="h-5 w-5 text-accent dark:text-accent shrink-0 mt-0.5" />
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="font-medium dark:text-slate-200">{n.title}</p>

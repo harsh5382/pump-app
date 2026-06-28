@@ -382,7 +382,7 @@ export default function TanksPage() {
                           {isAdmin && (
                             <td>
                               <div className="flex gap-1">
-                                <button type="button" onClick={() => startEditTank(t)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-sky-600 dark:hover:bg-slate-600 dark:text-slate-400 dark:hover:text-sky-400" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
+                                <button type="button" onClick={() => startEditTank(t)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-accent dark:hover:bg-slate-600 dark:text-slate-400 dark:hover:text-accent" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
                                 <button type="button" onClick={() => setDeleteTankTarget(t)} className="btn-icon-delete" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
                               </div>
                             </td>
@@ -570,7 +570,7 @@ export default function TanksPage() {
                               {isAdmin && (
                                 <td>
                                   <div className="flex gap-1">
-                                    <button type="button" onClick={() => startEditDip(d)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-sky-600 dark:hover:bg-slate-600 dark:text-slate-400 dark:hover:text-sky-400" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
+                                    <button type="button" onClick={() => startEditDip(d)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-accent dark:hover:bg-slate-600 dark:text-slate-400 dark:hover:text-accent" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
                                     <button type="button" onClick={() => setDeleteDipTarget(d)} className="btn-icon-delete" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
                                   </div>
                                 </td>

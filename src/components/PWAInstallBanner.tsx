@@ -71,13 +71,13 @@ export default function PWAInstallBanner() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-[100] flex items-center gap-3 bg-slate-900 text-white px-4 py-3 shadow-lg pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:max-w-sm sm:left-auto sm:right-4 sm:bottom-4 sm:rounded-2xl"
+      className="fixed bottom-0 left-0 right-0 z-[100] flex items-center gap-3 bg-ink-900 text-white px-4 py-3 shadow-lg pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:max-w-sm sm:left-auto sm:right-4 sm:bottom-4 sm:rounded-lg"
       role="dialog"
       aria-label="Install app"
     >
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm">Install Petrol Pump</p>
-        <p className="text-xs text-slate-300 truncate">
+        <p className="font-semibold text-sm">Install Pumpline</p>
+        <p className="text-xs text-[#94a3b8] truncate">
           {isIOSDevice
             ? "Tap Share → Add to Home Screen"
             : "Add to your home screen for quick access"}
@@ -87,7 +87,7 @@ export default function PWAInstallBanner() {
         <button
           type="button"
           onClick={handleInstall}
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-400"
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-[10px] bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:brightness-110"
         >
           <Download className="h-4 w-4" />
           Install
@@ -96,7 +96,7 @@ export default function PWAInstallBanner() {
       <button
         type="button"
         onClick={handleDismiss}
-        className="shrink-0 p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white"
+        className="shrink-0 p-2 rounded-lg hover:bg-white/10 text-[#94a3b8] hover:text-white"
         aria-label="Dismiss"
       >
         <X className="h-5 w-5" />

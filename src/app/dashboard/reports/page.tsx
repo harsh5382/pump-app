@@ -281,7 +281,7 @@ export default function ReportsPage() {
               {data.payments && data.payments.length > 0 && (
                 <>
                   <h3 className="font-medium mt-4">Total revenue</h3>
-                  <p className="text-xl font-bold text-sky-600">
+                  <p className="text-xl font-bold text-accent">
                     {formatCurrency(
                       data.payments.reduce((s, p) => s + p.amount, 0),
                     )}
