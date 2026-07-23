@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/Toast";
 import { getUsers, updateUserProfile, deleteUserProfile } from "@/lib/db";
 import type { UserProfile, UserRole } from "@/types";
 import { logAudit } from "@/lib/audit";
@@ -12,6 +13,7 @@ import { Pencil, Check, X, Trash2 } from "lucide-react";
 
 export default function UsersPage() {
   const { profile, hasRole, createUser: authCreateUser } = useAuth();
+  const toast = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
@@ -19,8 +21,6 @@ export default function UsersPage() {
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState<UserRole>("staff");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [editing, setEditing] = useState<UserProfile | null>(null);
   const [editDisplayName, setEditDisplayName] = useState("");
   const [editRole, setEditRole] = useState<UserRole>("staff");
@@ -34,7 +34,7 @@ export default function UsersPage() {
   function startEdit(u: UserProfile) {
     setEditing(u);
     setEditDisplayName(u.displayName);
-    setEditRole(u.role);
+    setEditRole(u.role ?? "staff");
   }
 
   async function handleUpdateUser(e: React.FormEvent) {
@@ -46,8 +46,9 @@ export default function UsersPage() {
       if (profile) await logAudit(profile.uid, profile.email, "UPDATE", "user", `User: ${editing.email}`);
       setEditing(null);
       setUsers(await getUsers());
-      setSuccessMessage("User updated.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("User updated.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSaving(false);
     }
@@ -60,7 +61,6 @@ export default function UsersPage() {
   async function handleAddUser(e: React.FormEvent) {
     e.preventDefault();
     if (!email || !password || !displayName || !isAdmin || !profile) return;
-    setError("");
     setSaving(true);
     try {
       await authCreateUser(email, password, displayName, role);
@@ -69,10 +69,9 @@ export default function UsersPage() {
       setPassword("");
       setDisplayName("");
       setUsers(await getUsers());
-      setSuccessMessage("User created successfully.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("User created successfully.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to create user");
+      toast.error(err instanceof Error ? err.message : "Failed to create user");
     } finally {
       setSaving(false);
     }
@@ -86,10 +85,9 @@ export default function UsersPage() {
       await logAudit(profile.uid, profile.email, "DELETE", "user", `User: ${deleteTarget.email}`);
       setUsers(await getUsers());
       setDeleteTarget(null);
-      setSuccessMessage("User deleted.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("User deleted.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to delete user");
+      toast.error(err instanceof Error ? err.message : "Failed to delete user");
     } finally {
       setDeleting(false);
     }
@@ -110,11 +108,6 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       <h1 className="page-title">Users</h1>
-      {successMessage && (
-        <div className="banner-success">
-          {successMessage}
-        </div>
-      )}
       <div className="card">
         <h2 className="text-lg font-semibold mb-4">Add user</h2>
         <form onSubmit={handleAddUser} className="space-y-4 max-w-md">
@@ -162,7 +155,6 @@ export default function UsersPage() {
               <option value="staff">Staff</option>
             </select>
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
           <button type="submit" className="btn btn-primary" disabled={saving}>
             {saving ? "Creating…" : "Add user"}
           </button>

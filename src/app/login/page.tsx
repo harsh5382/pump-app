@@ -4,36 +4,41 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { establishServerSession } from "@/lib/sessionClient";
+import { useToast } from "@/components/ui/Toast";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn, user, profile, loading: authLoading } = useAuth();
+  const toast = useToast();
   const router = useRouter();
 
   useEffect(() => {
     if (authLoading) return;
     if (user && profile) {
-      router.replace("/dashboard");
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.replace(next || "/dashboard");
     }
   }, [user, profile, authLoading, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
     setLoading(true);
     try {
       await signIn(email, password);
+      await establishServerSession();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Login failed";
       if (message.includes("configuration-not-found")) {
-        setError(
-          "Firebase Auth not configured. In Firebase Console: enable Authentication, turn on Email/Password, and add 'localhost' to Authorized domains.",
+        toast.error(
+          "Firebase Auth not configured. Enable Email/Password sign-in and add 'localhost' to Authorized domains in the Firebase Console.",
         );
+      } else if (message.includes("invalid-credential") || message.includes("wrong-password") || message.includes("user-not-found")) {
+        toast.error("Incorrect email or password.");
       } else {
-        setError(message);
+        toast.error(message);
       }
     } finally {
       setLoading(false);
@@ -118,11 +123,6 @@ export default function LoginPage() {
                 aria-label="Password"
               />
             </div>
-            {error && (
-              <p className="text-[13px] rounded-[7px] px-3 py-2.5 bg-[var(--danger-soft)] border border-[#fecaca] text-[#b91c1c]">
-                {error}
-              </p>
-            )}
             <button
               type="submit"
               className="btn btn-primary btn-lg w-full"

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/Toast";
 import { getTanks, getFuelTypes, addTank, updateTank, deleteTank, addDipEntry, getDipEntriesByDate, updateDipEntry, deleteDipEntry } from "@/lib/db";
 import type { Tank, FuelType, DipEntry } from "@/types";
 import { formatNumber, formatDate } from "@/lib/utils";
@@ -16,6 +17,7 @@ const today = new Date().toISOString().split("T")[0];
 
 export default function TanksPage() {
   const { profile, hasRole } = useAuth();
+  const toast = useToast();
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [fuelTypes, setFuelTypes] = useState<FuelType[]>([]);
   const [dips, setDips] = useState<DipEntry[]>([]);
@@ -30,7 +32,6 @@ export default function TanksPage() {
   const [dipReading, setDipReading] = useState("");
   const [actualQty, setActualQty] = useState("");
   const [dipSaving, setDipSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
   const [editingTank, setEditingTank] = useState<Tank | null>(null);
   const [editName, setEditName] = useState("");
   const [editFuelTypeId, setEditFuelTypeId] = useState("");
@@ -77,8 +78,9 @@ export default function TanksPage() {
       setCapacity("");
       setTanks(await getTanks());
       setShowForm(false);
-      setSuccessMessage("Tank added successfully.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Tank added successfully.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSaving(false);
     }
@@ -108,8 +110,9 @@ export default function TanksPage() {
       if (profile) await logAudit(profile.uid, profile.email, "UPDATE", "tank", `Tank: ${editingTank.name} → ${editName}`);
       setEditingTank(null);
       setTanks(await getTanks());
-      setSuccessMessage("Tank updated.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Tank updated.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSaving(false);
     }
@@ -124,8 +127,9 @@ export default function TanksPage() {
       setDeleteTankTarget(null);
       setTanks(await getTanks());
       if (dipTankId === deleteTankTarget.id && tanks.length > 1) setDipTankId(tanks.find((x) => x.id !== deleteTankTarget.id)?.id ?? "");
-      setSuccessMessage("Tank deleted.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Tank deleted.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setDeleting(false);
     }
@@ -153,8 +157,9 @@ export default function TanksPage() {
       });
       setEditingDip(null);
       setDips(await getDipEntriesByDate(dipDate));
-      setSuccessMessage("Dip entry updated.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Dip entry updated.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setDipSaving(false);
     }
@@ -167,8 +172,9 @@ export default function TanksPage() {
       await deleteDipEntry(deleteDipTarget.id);
       setDeleteDipTarget(null);
       setDips(await getDipEntriesByDate(dipDate));
-      setSuccessMessage("Dip entry deleted.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Dip entry deleted.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setDeletingDip(false);
     }
@@ -191,8 +197,9 @@ export default function TanksPage() {
       setDips(await getDipEntriesByDate(dipDate));
       setDipReading("");
       setActualQty("");
-      setSuccessMessage("Dip entry saved successfully.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Dip entry saved successfully.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setDipSaving(false);
     }
@@ -205,11 +212,6 @@ export default function TanksPage() {
   return (
     <div className="space-y-6">
       <h1 className="page-title">Tank Management</h1>
-      {successMessage && (
-        <div className="banner-success">
-          {successMessage}
-        </div>
-      )}
       <div className="card">
         <h2 className="card-header">Add tank</h2>
         {!showForm ? (

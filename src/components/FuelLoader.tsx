@@ -1,78 +1,62 @@
 "use client";
 
-import { Fuel } from "lucide-react";
+// ───────────────────────────────────────────────────────────────────────────
+// Pumpline loader — "meter sweep".
+// An amber comet glides across a thin gauge track beneath the serif monogram,
+// echoing a fuel meter reading. Calm, editorial, vector-only, transform-based,
+// and reduced-motion aware. Animation lives in globals.css (.fuel-*).
+// ───────────────────────────────────────────────────────────────────────────
 
 type FuelLoaderProps = {
-  /** Full-screen centering (e.g. auth/ProtectedRoute) */
+  /** Full-screen centering (e.g. auth / ProtectedRoute) */
   fullScreen?: boolean;
-  /** Inline size; default is medium */
+  /** Visual size; default medium */
   size?: "sm" | "md" | "lg";
   /** Extra wrapper class (e.g. min-h, padding) */
   className?: string;
+  /** Optional caption shown under the track in full-screen mode */
+  label?: string;
 };
 
-const sizeClasses = {
-  sm: {
-    ring: "w-10 h-10",
-    innerRing: "w-8 h-8",
-    iconBox: "w-6 h-6",
-    iconSize: 20,
-  },
-  md: {
-    ring: "w-14 h-14",
-    innerRing: "w-12 h-12",
-    iconBox: "w-10 h-10",
-    iconSize: 28,
-  },
-  lg: {
-    ring: "w-[72px] h-[72px]",
-    innerRing: "w-16 h-16",
-    iconBox: "w-14 h-14",
-    iconSize: 36,
-  },
+const SIZES = {
+  sm: { tile: "w-7 h-7 text-[15px] rounded-[7px]", track: "w-[104px]", gap: "gap-2.5" },
+  md: { tile: "w-9 h-9 text-[19px] rounded-[8px]", track: "w-[148px]", gap: "gap-3.5" },
+  lg: { tile: "w-11 h-11 text-[23px] rounded-[10px]", track: "w-[184px]", gap: "gap-4" },
 } as const;
 
 export default function FuelLoader({
   fullScreen = false,
   size = "md",
   className = "",
+  label,
 }: FuelLoaderProps) {
-  const s = sizeClasses[size];
+  const s = SIZES[size];
 
   const wrapperClass = fullScreen
-    ? "min-h-screen flex items-center justify-center"
+    ? "min-h-screen flex items-center justify-center bg-bg"
     : "flex items-center justify-center py-12 min-h-[200px]";
 
   return (
     <div
       className={`${wrapperClass} ${className}`}
       role="status"
-      aria-label="Loading"
+      aria-label={label || "Loading"}
     >
-      <div className="relative inline-flex items-center justify-center">
-        {/* Spinning gradient ring */}
-        <div
-          className={`absolute rounded-full border-2 border-transparent border-t-[#b45309] border-r-[#eab308] border-b-[#92400e] border-l-[#d97706] animate-spin ${s.ring}`}
-        />
-        {/* Inner subtle ring */}
-        <div
-          className={`absolute rounded-full border border-[#f0dcb0] animate-spin [animation-duration:2.5s] [animation-direction:reverse] ${s.innerRing}`}
-        />
-        {/* Fuel icon with pulse + glow */}
-        <div
-          className={`relative flex items-center justify-center rounded-full bg-gradient-to-br from-[#fffbeb] to-[#fcf0d2] animate-fuel-pulse animate-fuel-glow ${s.iconBox}`}
+      <div className={`flex flex-col items-center ${s.gap}`}>
+        <span
+          className={`fuel-mark inline-flex items-center justify-center bg-accent text-white serif leading-none ${s.tile}`}
+          aria-hidden
         >
-          <Fuel
-            className="text-[#b45309]"
-            size={s.iconSize}
-            strokeWidth={2.2}
-            aria-hidden
-          />
+          P
+        </span>
+        <div className={`fuel-track ${s.track}`} aria-hidden>
+          <span className="fuel-comet" />
         </div>
-        {/* Drip dots */}
-        <span className="absolute bottom-0 left-1/2 -ml-0.5 -mb-0.5 w-1 h-1 rounded-full bg-[#d97706] animate-fuel-drip" />
-        <span className="absolute bottom-0 left-[calc(50%-8px)] -ml-0.5 -mb-0.5 w-1 h-1 rounded-full bg-[#eab308] animate-fuel-drip fuel-drip-delay-1" />
-        <span className="absolute bottom-0 left-[calc(50%+8px)] -ml-0.5 -mb-0.5 w-1 h-1 rounded-full bg-[#b45309] animate-fuel-drip fuel-drip-delay-2" />
+        {fullScreen && (
+          <p className="text-[12px] text-ink-400 tracking-[0.1em] tabular-nums">
+            {label ?? "Loading…"}
+          </p>
+        )}
       </div>
     </div>
   );

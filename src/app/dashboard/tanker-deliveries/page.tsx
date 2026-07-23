@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/Toast";
 import { getTankerDeliveriesByDate, addTankerDelivery, updateTankerDelivery, deleteTankerDelivery, getTanks, getFuelTypes } from "@/lib/db";
 import type { TankerDelivery, Tank, FuelType } from "@/types";
 import { formatNumber, formatDate } from "@/lib/utils";
@@ -16,6 +17,7 @@ const today = new Date().toISOString().split("T")[0];
 
 export default function TankerDeliveriesPage() {
   const { profile, hasRole } = useAuth();
+  const toast = useToast();
   const [deliveries, setDeliveries] = useState<TankerDelivery[]>([]);
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [fuelTypes, setFuelTypes] = useState<FuelType[]>([]);
@@ -27,7 +29,6 @@ export default function TankerDeliveriesPage() {
   const [tankId, setTankId] = useState("");
   const [quantity, setQuantity] = useState("");
   const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
   const [editing, setEditing] = useState<TankerDelivery | null>(null);
   const [editCompany, setEditCompany] = useState("");
   const [editInvoice, setEditInvoice] = useState("");
@@ -75,8 +76,9 @@ export default function TankerDeliveriesPage() {
       setInvoice("");
       setQuantity("");
       setDeliveries(await getTankerDeliveriesByDate(date));
-      setSuccessMessage("Tanker delivery recorded successfully.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Tanker delivery recorded successfully.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSaving(false);
     }
@@ -102,8 +104,9 @@ export default function TankerDeliveriesPage() {
       if (profile) await logAudit(profile.uid, profile.email, "UPDATE", "tankerDelivery", editing.tankerCompany);
       setEditing(null);
       setDeliveries(await getTankerDeliveriesByDate(date));
-      setSuccessMessage("Delivery updated.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Delivery updated.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSaving(false);
     }
@@ -117,8 +120,9 @@ export default function TankerDeliveriesPage() {
       if (profile) await logAudit(profile.uid, profile.email, "DELETE", "tankerDelivery", deleteTarget.tankerCompany);
       setDeleteTarget(null);
       setDeliveries(await getTankerDeliveriesByDate(date));
-      setSuccessMessage("Delivery deleted. Tank stock was adjusted.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Delivery deleted. Tank stock was adjusted.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setDeleting(false);
     }
@@ -131,11 +135,6 @@ export default function TankerDeliveriesPage() {
   return (
     <div className="space-y-6">
       <h1 className="page-title">Tanker Delivery Entry</h1>
-      {successMessage && (
-        <div className="banner-success">
-          {successMessage}
-        </div>
-      )}
       <div className="card">
         <h2 className="card-header">Record delivery</h2>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">

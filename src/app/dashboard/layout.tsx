@@ -1,4 +1,5 @@
 import ProtectedRoute from "@/components/ProtectedRoute";
+import OnboardingGuard from "@/components/OnboardingGuard";
 import AppLayout from "@/components/Layout/AppLayout";
 
 export default function DashboardLayout({
@@ -8,7 +9,9 @@ export default function DashboardLayout({
 }) {
   return (
     <ProtectedRoute>
-      <AppLayout>{children}</AppLayout>
+      <OnboardingGuard>
+        <AppLayout>{children}</AppLayout>
+      </OnboardingGuard>
     </ProtectedRoute>
   );
 }

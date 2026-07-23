@@ -21,7 +21,7 @@ export default function ProtectedRoute({
       router.push("/login");
       return;
     }
-    if (roles && roles.length && !roles.includes(profile.role)) {
+    if (roles && roles.length && (!profile.role || !roles.includes(profile.role))) {
       router.push("/dashboard");
     }
   }, [user, profile, loading, roles, router]);
@@ -30,7 +30,7 @@ export default function ProtectedRoute({
     return <FuelLoader fullScreen />;
   }
 
-  if (roles && roles.length && !roles.includes(profile.role)) {
+  if (roles && roles.length && (!profile.role || !roles.includes(profile.role))) {
     return null;
   }
 

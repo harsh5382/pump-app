@@ -2,6 +2,8 @@
 
 import dynamic from "next/dynamic";
 import PWAInstallBanner from "@/components/PWAInstallBanner";
+import { OrgProvider } from "@/context/OrgContext";
+import { ToastProvider } from "@/components/ui/Toast";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
@@ -15,11 +17,15 @@ const AuthProvider = dynamic(
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <AuthProvider>
-        {children}
-        <PWAInstallBanner />
-      </AuthProvider>
-    </LocalizationProvider>
+    <ToastProvider>
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
+        <AuthProvider>
+          <OrgProvider>
+            {children}
+            <PWAInstallBanner />
+          </OrgProvider>
+        </AuthProvider>
+      </LocalizationProvider>
+    </ToastProvider>
   );
 }

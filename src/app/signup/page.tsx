@@ -4,23 +4,24 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, getDocs, collection } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
-import type { UserProfile, UserRole } from "@/types";
+import { establishServerSession } from "@/lib/sessionClient";
+import { useToast } from "@/components/ui/Toast";
+import type { UserProfile } from "@/types";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { refetchProfile } = useAuth();
+  const toast = useToast();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
     setLoading(true);
     try {
       const { user: newUser } = await createUserWithEmailAndPassword(
@@ -29,29 +30,37 @@ export default function SignUpPage() {
         password,
       );
       const now = new Date().toISOString();
-      const usersSnap = await getDocs(collection(db, "users"));
-      const isFirstUser = usersSnap.empty;
-      const role: UserRole = isFirstUser ? "admin" : "staff";
+      // Create a ROLE-LESS profile only. Authority (organisation ownership,
+      // roles) is granted exclusively by the server onboarding/provisioning
+      // flow — never self-assigned at signup. This closes the previous
+      // "first user becomes global admin" privilege-escalation hole.
       const userProfile: UserProfile = {
         uid: newUser.uid,
         email: newUser.email!,
         displayName: displayName.trim() || newUser.email!.split("@")[0],
-        role,
         createdAt: now,
         updatedAt: now,
       };
       await setDoc(doc(db, "users", newUser.uid), userProfile);
+      await establishServerSession();
       await refetchProfile();
-      router.push("/dashboard");
+      // Invitees (?next=/invite/accept…) go accept their invite; everyone else
+      // goes through onboarding to create their own organisation + outlet.
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.push(next || "/onboarding");
       router.refresh();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Sign up failed";
       if (message.includes("configuration-not-found")) {
-        setError(
-          "Firebase Auth is not configured. In Firebase Console: enable Authentication, turn on Email/Password sign-in, and add 'localhost' to Authorized domains.",
+        toast.error(
+          "Firebase Auth is not configured. Enable Email/Password sign-in and add 'localhost' to Authorized domains in the Firebase Console.",
         );
+      } else if (message.includes("email-already-in-use")) {
+        toast.error("That email already has an account. Try signing in instead.");
+      } else if (message.includes("weak-password")) {
+        toast.error("Password is too weak — use at least 6 characters.");
       } else {
-        setError(message);
+        toast.error(message);
       }
     } finally {
       setLoading(false);
@@ -153,11 +162,6 @@ export default function SignUpPage() {
                 aria-label="Password"
               />
             </div>
-            {error && (
-              <p className="text-[13px] rounded-[7px] px-3 py-2.5 bg-[var(--danger-soft)] border border-[#fecaca] text-[#b91c1c]">
-                {error}
-              </p>
-            )}
             <button
               type="submit"
               className="btn btn-primary btn-lg w-full"

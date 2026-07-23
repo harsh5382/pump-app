@@ -18,8 +18,16 @@ service cloud.firestore {
     }
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && (request.auth.uid == userId || getUserRole() == 'admin');
-      allow update, delete: if isAdmin();
+      // A user may create/update ONLY their own profile and may NEVER set or
+      // change the privileged `role` field. Roles are granted server-side only.
+      allow create: if isAdmin()
+        || (isSignedIn() && request.auth.uid == userId
+            && !("role" in request.resource.data));
+      allow update: if isAdmin()
+        || (isSignedIn() && request.auth.uid == userId
+            && (!("role" in request.resource.data)
+                || request.resource.data.role == resource.data.role));
+      allow delete: if isAdmin();
     }
     match /fuelTypes/{id} {
       allow read: if isSignedIn();

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/Toast";
 import { getFuelTypes, addFuelType, updateFuelType, deleteFuelType } from "@/lib/db";
 import type { FuelType } from "@/types";
 import { logAudit } from "@/lib/audit";
@@ -12,12 +13,12 @@ import { Pencil, Trash2, Check, X } from "lucide-react";
 
 export default function FuelTypesPage() {
   const { profile, hasRole } = useAuth();
+  const toast = useToast();
   const [list, setList] = useState<FuelType[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("L");
   const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
   const [editing, setEditing] = useState<FuelType | null>(null);
   const [editName, setEditName] = useState("");
   const [editUnit, setEditUnit] = useState("L");
@@ -42,8 +43,9 @@ export default function FuelTypesPage() {
       }
       setName("");
       setList(await getFuelTypes());
-      setSuccessMessage("Fuel type added successfully.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Fuel type added successfully.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSaving(false);
     }
@@ -66,8 +68,9 @@ export default function FuelTypesPage() {
       }
       setEditing(null);
       setList(await getFuelTypes());
-      setSuccessMessage("Fuel type updated.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Fuel type updated.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSaving(false);
     }
@@ -83,8 +86,9 @@ export default function FuelTypesPage() {
       }
       setDeleteTarget(null);
       setList(await getFuelTypes());
-      setSuccessMessage("Fuel type deleted.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Fuel type deleted.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setDeleting(false);
     }
@@ -93,11 +97,6 @@ export default function FuelTypesPage() {
   return (
     <div className="space-y-6">
       <h1 className="page-title">Fuel Types</h1>
-      {successMessage && (
-        <div className="banner-success">
-          {successMessage}
-        </div>
-      )}
       <div className="card">
         <h2 className="card-header">Add fuel type</h2>
         <form onSubmit={handleAdd} className="flex flex-wrap gap-4 items-end">

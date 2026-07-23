@@ -12,12 +12,15 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
+import { clearServerSession } from "@/lib/sessionClient";
 import type { UserProfile, UserRole } from "@/types";
 
 interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
+  /** Set when the profile could not be loaded — authorization must fail closed. */
+  authError: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   createUser: (email: string, password: string, displayName: string, role: UserRole) => Promise<void>;
@@ -31,33 +34,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     // Persist sign-in across browser sessions so user stays logged in until they sign out
     setPersistence(auth, browserLocalPersistence).catch(() => {});
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+      setAuthError(null);
       if (firebaseUser) {
-        const fallbackProfile: UserProfile = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email ?? "",
-          displayName: firebaseUser.displayName ?? firebaseUser.email?.split("@")[0] ?? "User",
-          role: "staff",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
         try {
           const profileRef = doc(db, "users", firebaseUser.uid);
           const snap = await getDoc(profileRef);
-          if (snap.exists()) {
-            setProfile(snap.data() as UserProfile);
-          } else {
-            await setDoc(profileRef, fallbackProfile);
-            setProfile(fallbackProfile);
-          }
-        } catch {
-          // Firestore read/write failed (e.g. rules, network) – use in-memory profile so login still works
-          setProfile(fallbackProfile);
+          // FAIL CLOSED: never invent a profile (and never a role) on the client.
+          // A missing profile means "no access yet" (e.g. onboarding not finished);
+          // a read error means we must NOT grant any authority.
+          setProfile(snap.exists() ? (snap.data() as UserProfile) : null);
+        } catch (err) {
+          setProfile(null);
+          setAuthError(
+            err instanceof Error
+              ? err.message
+              : "Could not load your account. Please retry.",
+          );
         }
       } else {
         setProfile(null);
@@ -72,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    await clearServerSession();
     await firebaseSignOut(auth);
   };
 
@@ -108,12 +108,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const hasRole = (...roles: UserRole[]) => {
-    return profile ? roles.includes(profile.role) : false;
+    return profile?.role ? roles.includes(profile.role) : false;
   };
 
   return (
     <AuthContext.Provider
-      value={{ user, profile, loading, signIn, signOut, createUser, refetchProfile, hasRole }}
+      value={{ user, profile, loading, authError, signIn, signOut, createUser, refetchProfile, hasRole }}
     >
       {children}
     </AuthContext.Provider>

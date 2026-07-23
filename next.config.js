@@ -12,10 +12,12 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 });
 
 const nextConfig = {
-  output: "export",
+  // Server runtime (Route Handlers / Server Actions + Firebase Admin SDK).
+  // Previously "export" (static) — removed so trusted server operations can run.
   trailingSlash: true,
+  // Don't trailing-slash-redirect API routes (webhooks POST to an exact URL).
+  skipTrailingSlashRedirect: true,
   productionBrowserSourceMaps: false,
-  images: { unoptimized: true },
 };
 
 module.exports = withPWA(nextConfig);

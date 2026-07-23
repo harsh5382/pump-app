@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/Toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import DatePicker from "@/components/DatePicker";
 import FuelLoader from "@/components/FuelLoader";
@@ -22,6 +23,7 @@ const CATEGORIES = [
 
 export default function ExpensesPage() {
   const { profile, hasRole } = useAuth();
+  const toast = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [date, setDate] = useState(today);
   const [loading, setLoading] = useState(true);
@@ -29,7 +31,6 @@ export default function ExpensesPage() {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
   const [editing, setEditing] = useState<Expense | null>(null);
   const [editCategory, setEditCategory] = useState("other");
   const [editAmount, setEditAmount] = useState("");
@@ -58,8 +59,9 @@ export default function ExpensesPage() {
       setAmount("");
       setDescription("");
       setExpenses(await getExpensesByDate(date));
-      setSuccessMessage("Expense added successfully.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Expense added successfully.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSaving(false);
     }
@@ -86,8 +88,9 @@ export default function ExpensesPage() {
       });
       setEditing(null);
       setExpenses(await getExpensesByDate(date));
-      setSuccessMessage("Expense updated.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Expense updated.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSaving(false);
     }
@@ -100,8 +103,9 @@ export default function ExpensesPage() {
       await deleteExpense(deleteTarget.id);
       setDeleteTarget(null);
       setExpenses(await getExpensesByDate(date));
-      setSuccessMessage("Expense deleted.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Expense deleted.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setDeleting(false);
     }
@@ -114,11 +118,6 @@ export default function ExpensesPage() {
   return (
     <div className="space-y-6">
       <h1 className="page-title">Expenses</h1>
-      {successMessage && (
-        <div className="banner-success">
-          {successMessage}
-        </div>
-      )}
       <div className="card">
         <label htmlFor="expense-date" className="label">Date</label>
         <DatePicker

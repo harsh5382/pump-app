@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/Toast";
 import { getNozzles, getTanks, getFuelTypes, addNozzle, updateNozzle, deleteNozzle } from "@/lib/db";
 import type { Nozzle, Tank, FuelType } from "@/types";
 import { logAudit } from "@/lib/audit";
@@ -12,6 +13,7 @@ import { Pencil, Trash2, Check, X } from "lucide-react";
 
 export default function NozzlesPage() {
   const { profile, hasRole } = useAuth();
+  const toast = useToast();
   const [nozzles, setNozzles] = useState<Nozzle[]>([]);
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [fuelTypes, setFuelTypes] = useState<FuelType[]>([]);
@@ -21,7 +23,6 @@ export default function NozzlesPage() {
   const [fuelTypeId, setFuelTypeId] = useState("");
   const [tankId, setTankId] = useState("");
   const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
   const [editingNozzle, setEditingNozzle] = useState<Nozzle | null>(null);
   const [editMachineNumber, setEditMachineNumber] = useState("");
   const [editFuelTypeId, setEditFuelTypeId] = useState("");
@@ -65,8 +66,9 @@ export default function NozzlesPage() {
       setMachineNumber("");
       setNozzles(await getNozzles());
       setShowForm(false);
-      setSuccessMessage("Nozzle added successfully.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Nozzle added successfully.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSaving(false);
     }
@@ -92,8 +94,9 @@ export default function NozzlesPage() {
       if (profile) await logAudit(profile.uid, profile.email, "UPDATE", "nozzle", `Nozzle ${editingNozzle.machineNumber} → ${editMachineNumber}`);
       setEditingNozzle(null);
       setNozzles(await getNozzles());
-      setSuccessMessage("Nozzle updated.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Nozzle updated.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSaving(false);
     }
@@ -107,8 +110,9 @@ export default function NozzlesPage() {
       if (profile) await logAudit(profile.uid, profile.email, "DELETE", "nozzle", `Nozzle: ${deleteTarget.machineNumber}`);
       setDeleteTarget(null);
       setNozzles(await getNozzles());
-      setSuccessMessage("Nozzle deleted.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Nozzle deleted.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setDeleting(false);
     }
@@ -121,11 +125,6 @@ export default function NozzlesPage() {
   return (
     <div className="space-y-6">
       <h1 className="page-title">Dispensing Machines (Nozzles)</h1>
-      {successMessage && (
-        <div className="banner-success">
-          {successMessage}
-        </div>
-      )}
       {isAdmin && (
         <div className="card">
           <h2 className="text-lg font-semibold mb-4">Add machine / nozzle</h2>

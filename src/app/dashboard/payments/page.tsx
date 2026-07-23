@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/Toast";
 import { getPaymentsByDate, addPayment, updatePayment, deletePayment } from "@/lib/db";
 import type { PaymentEntry, PaymentType } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -22,6 +23,7 @@ const PAYMENT_TYPES: { value: PaymentType; label: string }[] = [
 
 export default function PaymentsPage() {
   const { profile, hasRole } = useAuth();
+  const toast = useToast();
   const [payments, setPayments] = useState<PaymentEntry[]>([]);
   const [date, setDate] = useState(today);
   const [loading, setLoading] = useState(true);
@@ -30,7 +32,6 @@ export default function PaymentsPage() {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [expectedRevenue, setExpectedRevenue] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [editing, setEditing] = useState<PaymentEntry | null>(null);
   const [editType, setEditType] = useState<PaymentType>("cash");
   const [editAmount, setEditAmount] = useState("");
@@ -63,8 +64,9 @@ export default function PaymentsPage() {
       setAmount("");
       setNotes("");
       setPayments((prev) => [...prev, newPayment]);
-      setSuccessMessage("Payment added successfully.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Payment added successfully.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSaving(false);
     }
@@ -89,8 +91,9 @@ export default function PaymentsPage() {
       });
       setEditing(null);
       setPayments(await getPaymentsByDate(date));
-      setSuccessMessage("Payment updated.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Payment updated.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSaving(false);
     }
@@ -103,8 +106,9 @@ export default function PaymentsPage() {
       await deletePayment(deleteTarget.id);
       setDeleteTarget(null);
       setPayments(await getPaymentsByDate(date));
-      setSuccessMessage("Payment deleted.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Payment deleted.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setDeleting(false);
     }
@@ -117,11 +121,6 @@ export default function PaymentsPage() {
   return (
     <div className="space-y-6">
       <h1 className="page-title">Payment Tracking</h1>
-      {successMessage && (
-        <div className="banner-success">
-          {successMessage}
-        </div>
-      )}
       <div className="card">
         <label htmlFor="payment-date" className="label">Date</label>
         <DatePicker

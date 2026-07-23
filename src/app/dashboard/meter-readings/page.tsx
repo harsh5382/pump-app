@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/Toast";
 import {
   getNozzles,
   getFuelTypes,
@@ -22,6 +23,7 @@ const today = new Date().toISOString().split("T")[0];
 
 export default function MeterReadingsPage() {
   const { profile, hasRole } = useAuth();
+  const toast = useToast();
   const [nozzles, setNozzles] = useState<Nozzle[]>([]);
   const [fuelTypes, setFuelTypes] = useState<FuelType[]>([]);
   const [readings, setReadings] = useState<MeterReading[]>([]);
@@ -30,7 +32,6 @@ export default function MeterReadingsPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [opening, setOpening] = useState<Record<string, string>>({});
   const [closing, setClosing] = useState<Record<string, string>>({});
-  const [successMessage, setSuccessMessage] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<MeterReading | null>(null);
   const [deleting, setDeleting] = useState(false);
   const isAdmin = hasRole("admin");
@@ -86,8 +87,9 @@ export default function MeterReadingsPage() {
       });
       setOpening((prev) => ({ ...prev, ...oMap }));
       setClosing((prev) => ({ ...prev, ...cMap }));
-      setSuccessMessage("Meter reading saved successfully.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Meter reading saved successfully.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSaving(null);
     }
@@ -110,8 +112,9 @@ export default function MeterReadingsPage() {
         delete next[deleteTarget.nozzleId];
         return next;
       });
-      setSuccessMessage("Meter reading deleted.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Meter reading deleted.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setDeleting(false);
     }
@@ -124,11 +127,6 @@ export default function MeterReadingsPage() {
   return (
     <div className="space-y-6">
       <h1 className="page-title">Daily Meter Readings</h1>
-      {successMessage && (
-        <div className="banner-success">
-          {successMessage}
-        </div>
-      )}
       <div className="card overflow-hidden">
         <div className="mb-4">
           <DatePicker

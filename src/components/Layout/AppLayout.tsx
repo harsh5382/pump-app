@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useOrg } from "@/context/OrgContext";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
+import type { Capability } from "@/lib/capabilities";
 import {
   LayoutDashboard,
   Fuel,
@@ -16,6 +18,7 @@ import {
   CreditCard,
   Wallet,
   Users,
+  UserPlus,
   FileText,
   Bell,
   Settings,
@@ -43,10 +46,13 @@ const nav: NavItem[] = [
   { href: "/dashboard/notifications", label: "Alerts", icon: Bell },
 ];
 
-const adminNav: NavItem[] = [
-  { href: "/dashboard/fuel-types", label: "Fuel Types", icon: Fuel },
-  { href: "/dashboard/users", label: "Users", icon: Users },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
+type AdminNavItem = NavItem & { capability: Capability };
+
+const adminNav: AdminNavItem[] = [
+  { href: "/dashboard/team", label: "Team", icon: UserPlus, capability: "org.manage_members" },
+  { href: "/dashboard/fuel-types", label: "Fuel Types", icon: Fuel, capability: "outlet.manage_assets" },
+  { href: "/dashboard/users", label: "Users", icon: Users, capability: "org.manage_members" },
+  { href: "/dashboard/settings", label: "Settings", icon: Settings, capability: "outlet.manage_settings" },
 ];
 
 // Topbar title + subtitle per route
@@ -65,6 +71,7 @@ const TITLES: Record<string, [string, string]> = {
   "/dashboard/notifications": ["Alerts", "Stock, meter & payment alerts"],
   "/dashboard/fuel-types": ["Fuel Types", "Petrol, diesel & more"],
   "/dashboard/users": ["Users", "Team & roles"],
+  "/dashboard/team": ["Team", "Invite managers & staff"],
   "/dashboard/settings": ["Settings", "Outlet preferences"],
 };
 
@@ -72,7 +79,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, signOut, hasRole } = useAuth();
+  const { currentOrg, hasCapability } = useOrg();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Admin section items the current user is allowed to see (capability-based,
+  // with legacy global-admin role as a fallback during migration).
+  const visibleAdminNav = adminNav.filter(
+    (item) => hasCapability(item.capability) || hasRole("admin"),
+  );
 
   const handleSignOut = async () => {
     await signOut();
@@ -132,22 +146,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-accent text-white serif text-xl">
           P
         </span>
-        <div>
+        <div className="min-w-0">
           <div className="serif text-xl leading-none">Pumpline</div>
-          <div className="text-[10px] uppercase tracking-[0.12em] text-ink-500 mt-0.5">
-            Fuel Ledger
+          <div className="text-[10px] uppercase tracking-[0.12em] text-ink-500 mt-0.5 truncate">
+            {currentOrg?.organisationName ?? "Fuel Ledger"}
           </div>
         </div>
       </div>
 
       <nav className="flex-1 overflow-y-auto space-y-0.5 pr-0.5">
         {nav.map(renderItem)}
-        {hasRole("admin") && (
+        {visibleAdminNav.length > 0 && (
           <>
             <div className="px-3 pt-5 pb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-ink-500">
               Admin
             </div>
-            {adminNav.map(renderItem)}
+            {visibleAdminNav.map(renderItem)}
           </>
         )}
       </nav>
@@ -160,7 +174,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {profile?.displayName ?? profile?.email}
             </div>
             <div className="text-[11px] text-ink-500 capitalize">
-              {profile?.role ?? "user"}
+              {currentOrg?.organisationRole?.replace(/_/g, " ") ??
+                profile?.role ??
+                "member"}
             </div>
           </div>
           <button

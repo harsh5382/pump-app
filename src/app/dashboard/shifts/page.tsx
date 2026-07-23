@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/Toast";
 import { getShiftsByDate, addShift, updateShift, deleteShift, getNozzles } from "@/lib/db";
 import type { StaffShift, Nozzle } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -15,6 +16,7 @@ const today = new Date().toISOString().split("T")[0];
 
 export default function ShiftsPage() {
   const { profile, hasRole } = useAuth();
+  const toast = useToast();
   const [shifts, setShifts] = useState<StaffShift[]>([]);
   const [nozzles, setNozzles] = useState<Nozzle[]>([]);
   const [date, setDate] = useState(today);
@@ -25,7 +27,6 @@ export default function ShiftsPage() {
   const [assignedNozzleIds, setAssignedNozzleIds] = useState<string[]>([]);
   const [cashCollected, setCashCollected] = useState("");
   const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
   const [editing, setEditing] = useState<StaffShift | null>(null);
   const [editStaffName, setEditStaffName] = useState("");
   const [editShiftStart, setEditShiftStart] = useState("");
@@ -68,8 +69,9 @@ export default function ShiftsPage() {
       setCashCollected("");
       setAssignedNozzleIds([]);
       setShifts(await getShiftsByDate(date));
-      setSuccessMessage("Shift added successfully.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Shift added successfully.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSaving(false);
     }
@@ -102,8 +104,9 @@ export default function ShiftsPage() {
       });
       setEditing(null);
       setShifts(await getShiftsByDate(date));
-      setSuccessMessage("Shift updated.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Shift updated.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSaving(false);
     }
@@ -116,8 +119,9 @@ export default function ShiftsPage() {
       await deleteShift(deleteTarget.id);
       setDeleteTarget(null);
       setShifts(await getShiftsByDate(date));
-      setSuccessMessage("Shift deleted.");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Shift deleted.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setDeleting(false);
     }
@@ -130,11 +134,6 @@ export default function ShiftsPage() {
   return (
     <div className="space-y-6">
       <h1 className="page-title">Staff Shift Management</h1>
-      {successMessage && (
-        <div className="banner-success">
-          {successMessage}
-        </div>
-      )}
       <div className="card">
         <label htmlFor="shift-date" className="label">Date</label>
         <DatePicker
