@@ -49,6 +49,7 @@ const nav: NavItem[] = [
 type AdminNavItem = NavItem & { capability: Capability };
 
 const adminNav: AdminNavItem[] = [
+  { href: "/dashboard/billing", label: "Billing", icon: CreditCard, capability: "org.manage_billing" },
   { href: "/dashboard/team", label: "Team", icon: UserPlus, capability: "org.manage_members" },
   { href: "/dashboard/fuel-types", label: "Fuel Types", icon: Fuel, capability: "outlet.manage_assets" },
   { href: "/dashboard/users", label: "Users", icon: Users, capability: "org.manage_members" },
@@ -69,6 +70,7 @@ const TITLES: Record<string, [string, string]> = {
   "/dashboard/stock": ["Stock", "System vs dip reconciliation"],
   "/dashboard/reports": ["Reports", "Exports & analytics"],
   "/dashboard/notifications": ["Alerts", "Stock, meter & payment alerts"],
+  "/dashboard/billing": ["Billing", "Plan, usage & invoices"],
   "/dashboard/fuel-types": ["Fuel Types", "Petrol, diesel & more"],
   "/dashboard/users": ["Users", "Team & roles"],
   "/dashboard/team": ["Team", "Invite managers & staff"],
