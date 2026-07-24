@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useOrg } from "@/context/OrgContext";
 import { useToast } from "@/components/ui/Toast";
 import { getNozzles, getTanks, getFuelTypes, addNozzle, updateNozzle, deleteNozzle } from "@/lib/db";
 import type { Nozzle, Tank, FuelType } from "@/types";
@@ -12,7 +13,8 @@ import { useMediaQuery } from "@/lib/useMediaQuery";
 import { Pencil, Trash2, Check, X } from "lucide-react";
 
 export default function NozzlesPage() {
-  const { profile, hasRole } = useAuth();
+  const { profile } = useAuth();
+  const { hasCapability } = useOrg();
   const toast = useToast();
   const [nozzles, setNozzles] = useState<Nozzle[]>([]);
   const [tanks, setTanks] = useState<Tank[]>([]);
@@ -30,7 +32,7 @@ export default function NozzlesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Nozzle | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const isAdmin = hasRole("admin");
+  const isAdmin = hasCapability("outlet.manage_assets");
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   useEffect(() => {

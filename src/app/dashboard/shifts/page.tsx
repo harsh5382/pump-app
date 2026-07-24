@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useOrg } from "@/context/OrgContext";
 import { useToast } from "@/components/ui/Toast";
 import { getShiftsByDate, addShift, updateShift, deleteShift, getNozzles } from "@/lib/db";
 import type { StaffShift, Nozzle } from "@/types";
@@ -15,7 +16,8 @@ import { Pencil, Trash2, Check, X } from "lucide-react";
 const today = new Date().toISOString().split("T")[0];
 
 export default function ShiftsPage() {
-  const { profile, hasRole } = useAuth();
+  const { profile } = useAuth();
+  const { hasCapability } = useOrg();
   const toast = useToast();
   const [shifts, setShifts] = useState<StaffShift[]>([]);
   const [nozzles, setNozzles] = useState<Nozzle[]>([]);
@@ -35,7 +37,7 @@ export default function ShiftsPage() {
   const [editNozzleIds, setEditNozzleIds] = useState<string[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<StaffShift | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const isAdmin = hasRole("admin");
+  const isAdmin = hasCapability("shift.close");
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   useEffect(() => {

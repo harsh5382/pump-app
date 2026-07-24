@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useOrg } from "@/context/OrgContext";
 import { useToast } from "@/components/ui/Toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import DatePicker from "@/components/DatePicker";
@@ -22,7 +23,8 @@ const CATEGORIES = [
 ];
 
 export default function ExpensesPage() {
-  const { profile, hasRole } = useAuth();
+  const { profile } = useAuth();
+  const { hasCapability } = useOrg();
   const toast = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [date, setDate] = useState(today);
@@ -37,7 +39,7 @@ export default function ExpensesPage() {
   const [editDescription, setEditDescription] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const isAdmin = hasRole("admin");
+  const isAdmin = hasCapability("expense.manage");
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   useEffect(() => {

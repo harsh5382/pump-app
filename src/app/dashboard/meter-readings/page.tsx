@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useOrg } from "@/context/OrgContext";
 import { useToast } from "@/components/ui/Toast";
 import {
   getNozzles,
@@ -22,7 +23,8 @@ import { Trash2, Check } from "lucide-react";
 const today = new Date().toISOString().split("T")[0];
 
 export default function MeterReadingsPage() {
-  const { profile, hasRole } = useAuth();
+  const { profile } = useAuth();
+  const { hasCapability } = useOrg();
   const toast = useToast();
   const [nozzles, setNozzles] = useState<Nozzle[]>([]);
   const [fuelTypes, setFuelTypes] = useState<FuelType[]>([]);
@@ -34,7 +36,7 @@ export default function MeterReadingsPage() {
   const [closing, setClosing] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<MeterReading | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const isAdmin = hasRole("admin");
+  const isAdmin = hasCapability("reading.enter");
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   useEffect(() => {

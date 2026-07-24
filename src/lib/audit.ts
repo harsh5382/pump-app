@@ -1,4 +1,5 @@
 import { supabase } from "./supabase/client";
+import { requireOutletId } from "./outletContext";
 
 export async function logAudit(
   userId: string,
@@ -7,6 +8,7 @@ export async function logAudit(
   resource: string,
   details?: string
 ) {
+  const outletId = requireOutletId();
   await supabase.from("auditLogs").insert({
     userId,
     userEmail,
@@ -14,5 +16,6 @@ export async function logAudit(
     resource,
     details: details ?? null,
     createdAt: new Date().toISOString(),
+    outletId,
   });
 }

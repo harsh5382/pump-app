@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useOrg } from "@/context/OrgContext";
 import { useToast } from "@/components/ui/Toast";
 import { getPaymentsByDate, addPayment, updatePayment, deletePayment } from "@/lib/db";
 import type { PaymentEntry, PaymentType } from "@/types";
@@ -22,7 +23,8 @@ const PAYMENT_TYPES: { value: PaymentType; label: string }[] = [
 ];
 
 export default function PaymentsPage() {
-  const { profile, hasRole } = useAuth();
+  const { profile } = useAuth();
+  const { hasCapability } = useOrg();
   const toast = useToast();
   const [payments, setPayments] = useState<PaymentEntry[]>([]);
   const [date, setDate] = useState(today);
@@ -38,7 +40,7 @@ export default function PaymentsPage() {
   const [editNotes, setEditNotes] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<PaymentEntry | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const isAdmin = hasRole("admin");
+  const isAdmin = hasCapability("payment.manage");
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   useEffect(() => {

@@ -78,14 +78,13 @@ const TITLES: Record<string, [string, string]> = {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, signOut, hasRole } = useAuth();
-  const { currentOrg, hasCapability } = useOrg();
+  const { profile, signOut } = useAuth();
+  const { currentOrg, hasCapability, currentOutletId } = useOrg();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Admin section items the current user is allowed to see (capability-based,
-  // with legacy global-admin role as a fallback during migration).
-  const visibleAdminNav = adminNav.filter(
-    (item) => hasCapability(item.capability) || hasRole("admin"),
+  // Admin section items the current user is allowed to see (capability-based).
+  const visibleAdminNav = adminNav.filter((item) =>
+    hasCapability(item.capability),
   );
 
   const handleSignOut = async () => {
@@ -250,7 +249,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </Link>
         </header>
 
-        <main className="flex-1 px-5 sm:px-8 py-6 sm:py-8 overflow-x-hidden">
+        {/* key on the active outlet so switching outlets remounts the page,
+            re-fetching all data for the newly-selected outlet. */}
+        <main key={currentOutletId} className="flex-1 px-5 sm:px-8 py-6 sm:py-8 overflow-x-hidden">
           {children}
         </main>
       </div>

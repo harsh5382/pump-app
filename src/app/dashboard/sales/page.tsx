@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useOrg } from "@/context/OrgContext";
 import {
   getMeterReadingsByDate,
   getNozzles,
@@ -16,7 +16,7 @@ import FuelLoader from "@/components/FuelLoader";
 const today = new Date().toISOString().split("T")[0];
 
 export default function SalesPage() {
-  const { hasRole } = useAuth();
+  const { hasCapability } = useOrg();
   const [readings, setReadings] = useState<MeterReading[]>([]);
   const [nozzles, setNozzles] = useState<Nozzle[]>([]);
   const [fuelTypes, setFuelTypes] = useState<FuelType[]>([]);
@@ -24,7 +24,7 @@ export default function SalesPage() {
   const [date, setDate] = useState(today);
   const [loading, setLoading] = useState(true);
 
-  const isAdmin = hasRole("admin");
+  const isAdmin = hasCapability("report.view");
 
   useEffect(() => {
     Promise.all([
