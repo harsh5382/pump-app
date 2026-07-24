@@ -3,13 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/context/AuthContext";
-import { establishServerSession } from "@/lib/sessionClient";
 import { useToast } from "@/components/ui/Toast";
-import type { UserProfile } from "@/types";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -24,25 +20,28 @@ export default function SignUpPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { user: newUser } = await createUserWithEmailAndPassword(
-        auth,
+      // Create a ROLE-LESS account only. Authority (organisation ownership,
+      // roles) is granted exclusively by the server onboarding/provisioning
+      // flow — never self-assigned at signup. The profiles row is created by
+      // the on_auth_user_created DB trigger.
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-      );
-      const now = new Date().toISOString();
-      // Create a ROLE-LESS profile only. Authority (organisation ownership,
-      // roles) is granted exclusively by the server onboarding/provisioning
-      // flow — never self-assigned at signup. This closes the previous
-      // "first user becomes global admin" privilege-escalation hole.
-      const userProfile: UserProfile = {
-        uid: newUser.uid,
-        email: newUser.email!,
-        displayName: displayName.trim() || newUser.email!.split("@")[0],
-        createdAt: now,
-        updatedAt: now,
-      };
-      await setDoc(doc(db, "users", newUser.uid), userProfile);
-      await establishServerSession();
+        options: {
+          data: {
+            display_name: displayName.trim() || email.split("@")[0],
+          },
+        },
+      });
+      if (error) throw error;
+
+      // If email confirmation is enabled, there is no session yet.
+      if (!data.session) {
+        toast.success("Check your inbox to confirm your email, then sign in.");
+        router.push("/login");
+        return;
+      }
+
       await refetchProfile();
       // Invitees (?next=/invite/accept…) go accept their invite; everyone else
       // goes through onboarding to create their own organisation + outlet.
@@ -51,13 +50,9 @@ export default function SignUpPage() {
       router.refresh();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Sign up failed";
-      if (message.includes("configuration-not-found")) {
-        toast.error(
-          "Firebase Auth is not configured. Enable Email/Password sign-in and add 'localhost' to Authorized domains in the Firebase Console.",
-        );
-      } else if (message.includes("email-already-in-use")) {
+      if (/already registered|already been registered|user already/i.test(message)) {
         toast.error("That email already has an account. Try signing in instead.");
-      } else if (message.includes("weak-password")) {
+      } else if (/password/i.test(message) && /6|weak|short/i.test(message)) {
         toast.error("Password is too weak — use at least 6 characters.");
       } else {
         toast.error(message);

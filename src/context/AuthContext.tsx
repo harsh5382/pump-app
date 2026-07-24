@@ -1,22 +1,18 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import {
-  User,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  createUserWithEmailAndPassword,
-  setPersistence,
-  browserLocalPersistence,
-} from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
-import { clearServerSession } from "@/lib/sessionClient";
+import { supabase } from "@/lib/supabase/client";
 import type { UserProfile, UserRole } from "@/types";
 
+// Normalized client identity. We expose `uid` (not Supabase's `id`) so the rest
+// of the app keeps using the same shape it did under Firebase.
+export interface AuthUser {
+  uid: string;
+  email: string | null;
+}
+
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   profile: UserProfile | null;
   loading: boolean;
   /** Set when the profile could not be loaded — authorization must fail closed. */
@@ -30,81 +26,122 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+type ProfileRow = {
+  id: string;
+  email: string;
+  display_name: string;
+  phone: string | null;
+  accepted_terms_version: string | null;
+  accepted_privacy_version: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+function mapProfile(row: ProfileRow): UserProfile {
+  return {
+    uid: row.id,
+    email: row.email,
+    displayName: row.display_name,
+    phone: row.phone ?? undefined,
+    acceptedTermsVersion: row.accepted_terms_version ?? undefined,
+    acceptedPrivacyVersion: row.accepted_privacy_version ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Persist sign-in across browser sessions so user stays logged in until they sign out
-    setPersistence(auth, browserLocalPersistence).catch(() => {});
-    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
+  async function loadProfile(uid: string) {
+    // FAIL CLOSED: never invent a profile (or a role) on the client. A missing
+    // profile means "no access yet"; a read error must NOT grant any authority.
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", uid)
+        .maybeSingle();
+      if (error) throw error;
+      setProfile(data ? mapProfile(data as ProfileRow) : null);
       setAuthError(null);
-      if (firebaseUser) {
-        try {
-          const profileRef = doc(db, "users", firebaseUser.uid);
-          const snap = await getDoc(profileRef);
-          // FAIL CLOSED: never invent a profile (and never a role) on the client.
-          // A missing profile means "no access yet" (e.g. onboarding not finished);
-          // a read error means we must NOT grant any authority.
-          setProfile(snap.exists() ? (snap.data() as UserProfile) : null);
-        } catch (err) {
-          setProfile(null);
-          setAuthError(
-            err instanceof Error
-              ? err.message
-              : "Could not load your account. Please retry.",
-          );
-        }
-      } else {
-        setProfile(null);
+    } catch (err) {
+      setProfile(null);
+      setAuthError(
+        err instanceof Error ? err.message : "Could not load your account. Please retry.",
+      );
+    }
+  }
+
+  useEffect(() => {
+    let active = true;
+
+    // Prime from the current session, then subscribe to changes. Supabase
+    // persists the session in cookies/localStorage across browser sessions.
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!active) return;
+      const u = data.user;
+      if (u) {
+        setUser({ uid: u.id, email: u.email ?? null });
+        await loadProfile(u.id);
       }
       setLoading(false);
     });
-    return () => unsub();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!active) return;
+      const u = session?.user ?? null;
+      if (u) {
+        setUser({ uid: u.id, email: u.email ?? null });
+        await loadProfile(u.id);
+      } else {
+        setUser(null);
+        setProfile(null);
+        setAuthError(null);
+      }
+      setLoading(false);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
   };
 
   const signOut = async () => {
-    await clearServerSession();
-    await firebaseSignOut(auth);
+    await supabase.auth.signOut();
+    setUser(null);
+    setProfile(null);
   };
 
   const createUser = async (
     email: string,
     password: string,
     displayName: string,
-    role: UserRole
+    _role: UserRole, // legacy global role is no longer stored; authority is per-org
   ) => {
-    const { user: newUser } = await createUserWithEmailAndPassword(auth, email, password);
-    const now = new Date().toISOString();
-    const userProfile: UserProfile = {
-      uid: newUser.uid,
-      email: newUser.email!,
-      displayName,
-      role,
-      createdAt: now,
-      updatedAt: now,
-    };
-    await setDoc(doc(db, "users", newUser.uid), userProfile);
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { display_name: displayName } },
+    });
+    if (error) throw error;
+    // The profiles row is created by the on_auth_user_created DB trigger.
   };
 
   const refetchProfile = async () => {
-    const firebaseUser = auth.currentUser;
-    if (firebaseUser) {
-      try {
-        const profileRef = doc(db, "users", firebaseUser.uid);
-        const snap = await getDoc(profileRef);
-        setProfile(snap.exists() ? (snap.data() as UserProfile) : null);
-      } catch {
-        setProfile(null);
-      }
-    }
+    const { data } = await supabase.auth.getUser();
+    if (data.user) await loadProfile(data.user.id);
   };
 
   const hasRole = (...roles: UserRole[]) => {

@@ -1,6 +1,6 @@
 "use server";
 
-import { adminDb, isAdminConfigured } from "@/server/firebaseAdmin";
+import { requireAdmin, isAdminConfigured } from "@/server/supabaseAdmin";
 import { requireUser } from "@/server/auth/session";
 import { ENTITLEMENTS, TRIAL_PLAN_ID } from "@/lib/plans";
 
@@ -28,11 +28,10 @@ export interface ProvisionResult {
 
 // ───────────────────────────────────────────────────────────────────────────
 // provisionOrganisation — the ONE trusted transaction that turns a freshly
-// registered user into an organisation owner. Creates, atomically:
-//   organisations/{org}, members/{uid}=owner, outlets/{outlet},
-//   outlets/{outlet}/members/{uid}=outlet_admin, subscriptions/{org}=trialing,
-//   users/{uid}/accessIndex/{org}, and stamps the user's accepted-terms.
-// Idempotent: if the user already owns an org, returns it instead of duplicating.
+// registered user into an organisation owner. Delegates to the atomic
+// provision_organisation() SQL function (org + owner membership + outlet +
+// outlet membership + trial subscription, all in one transaction).
+// Idempotent: if the user already belongs to an org, returns it instead.
 // ───────────────────────────────────────────────────────────────────────────
 export async function provisionOrganisation(
   input: ProvisionInput,
@@ -42,7 +41,7 @@ export async function provisionOrganisation(
       ok: false,
       needsBackend: true,
       error:
-        "Server backend not configured. Add FIREBASE_SERVICE_ACCOUNT to enable onboarding.",
+        "Server backend not configured. Set SUPABASE_SERVICE_ROLE_KEY to enable onboarding.",
     };
   }
 
@@ -60,99 +59,37 @@ export async function provisionOrganisation(
     return { ok: false, error: "You must be signed in." };
   }
 
-  const db = adminDb();
-  const now = new Date().toISOString();
+  const trialEndsAt = new Date(
+    Date.now() + 14 * 24 * 60 * 60 * 1000,
+  ).toISOString();
 
-  // Idempotency: already onboarded?
-  const existing = await db
-    .collection(`users/${user.uid}/accessIndex`)
-    .limit(1)
-    .get();
-  if (!existing.empty) {
-    const doc = existing.docs[0];
-    const data = doc.data();
-    const outletId = Object.keys(data.outletRoles ?? {})[0];
-    return { ok: true, organisationId: doc.id, outletId };
-  }
-
-  const orgRef = db.collection("organisations").doc();
-  const outletRef = orgRef.collection("outlets").doc();
-  const timeZone = input.outlet.timeZone || "Asia/Kolkata";
-
-  await db.runTransaction(async (tx) => {
-    tx.set(orgRef, {
-      id: orgRef.id,
-      name: orgName,
-      ownerUid: user.uid,
-      status: "active",
-      locale: "en-IN",
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    tx.set(orgRef.collection("members").doc(user.uid), {
-      uid: user.uid,
-      email: user.email ?? "",
-      displayName: (user.name as string) ?? user.email ?? "Owner",
-      organisationRole: "organisation_owner",
-      status: "active",
-      acceptedAt: now,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    tx.set(outletRef, {
-      id: outletRef.id,
-      code: outletCode,
-      name: outletName,
-      omcBrand: input.outlet.omcBrand ?? "",
-      address: input.outlet.address ?? "",
-      state: input.outlet.state ?? "",
-      timeZone,
-      businessDayCutoverHour: 0,
-      status: "active",
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    tx.set(outletRef.collection("members").doc(user.uid), {
-      uid: user.uid,
-      outletRole: "outlet_admin",
-      status: "active",
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    tx.set(db.collection("subscriptions").doc(orgRef.id), {
-      organisationId: orgRef.id,
-      planId: TRIAL_PLAN_ID,
-      status: "trialing",
-      entitlements: ENTITLEMENTS.trial,
-      trialEndsAt: new Date(
-        Date.now() + 14 * 24 * 60 * 60 * 1000,
-      ).toISOString(),
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    tx.set(db.doc(`users/${user.uid}/accessIndex/${orgRef.id}`), {
-      organisationId: orgRef.id,
-      organisationName: orgName,
-      organisationRole: "organisation_owner",
-      outletRoles: { [outletRef.id]: "outlet_admin" },
-      updatedAt: now,
-    });
-
-    tx.set(
-      db.doc(`users/${user.uid}`),
-      {
-        acceptedTermsVersion: input.acceptedTermsVersion,
-        acceptedPrivacyVersion: input.acceptedPrivacyVersion,
-        updatedAt: now,
-      },
-      { merge: true },
-    );
+  const { data, error } = await requireAdmin().rpc("provision_organisation", {
+    p_user_id: user.uid,
+    p_email: user.email ?? "",
+    p_display_name: user.name ?? user.email ?? "Owner",
+    p_org_name: orgName,
+    p_outlet_name: outletName,
+    p_outlet_code: outletCode,
+    p_omc_brand: input.outlet.omcBrand ?? "",
+    p_address: input.outlet.address ?? "",
+    p_state: input.outlet.state ?? "",
+    p_time_zone: input.outlet.timeZone ?? "Asia/Kolkata",
+    p_terms_version: input.acceptedTermsVersion,
+    p_privacy_version: input.acceptedPrivacyVersion,
+    p_plan_id: TRIAL_PLAN_ID,
+    p_entitlements: ENTITLEMENTS.trial,
+    p_trial_ends_at: trialEndsAt,
   });
 
-  return { ok: true, organisationId: orgRef.id, outletId: outletRef.id };
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  // The function returns a single row { organisation_id, outlet_id }.
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    ok: true,
+    organisationId: row?.organisation_id,
+    outletId: row?.outlet_id,
+  };
 }

@@ -12,10 +12,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
-    "test:watch": "jest --watch",
-    "export": "next build",
-    "deploy": "npm run build && firebase deploy",
-    "deploy:hosting": "npm run build && firebase deploy --only hosting"
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -23,10 +20,10 @@
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^7.3.8",
     "@mui/x-date-pickers": "^8.27.2",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.45.4",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "firebase": "^10.14.1",
-    "firebase-admin": "^13.10.0",
     "lucide-react": "^0.460.0",
     "next": "14.2.18",
     "razorpay": "^2.9.6",

@@ -1,28 +1,30 @@
-import { auth } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase/client";
 
-// Bridges Firebase client auth → server session cookie. After a successful
-// client sign-in we exchange the ID token for an httpOnly session cookie so the
-// trusted backend (server actions / route handlers) can authorise requests.
-// No-ops gracefully when the backend isn't configured yet.
+// ───────────────────────────────────────────────────────────────────────────
+// Session bridge (Supabase).
+//
+// With @supabase/ssr the browser client writes the auth session to cookies
+// automatically on sign-in, and the middleware keeps it fresh — so there is no
+// ID-token → session-cookie exchange step anymore. These functions are kept for
+// API compatibility with existing callers (OrgContext, signup):
+//   • establishServerSession — ensures the session token is materialised into
+//     cookies (a no-op refresh; safe to call repeatedly).
+//   • clearServerSession — clears the auth cookies on sign-out.
+// ───────────────────────────────────────────────────────────────────────────
 
 export async function establishServerSession(): Promise<void> {
-  const user = auth.currentUser;
-  if (!user) return;
   try {
-    const idToken = await user.getIdToken(true);
-    await fetch("/api/auth/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ idToken }),
-    });
+    // Touch the session so the auth cookies are present before the server
+    // action that reads them runs. No token exchange required.
+    await supabase.auth.getSession();
   } catch {
-    // Backend not ready — legacy client auth still works.
+    // ignore — the app still functions; server calls will fail closed.
   }
 }
 
 export async function clearServerSession(): Promise<void> {
   try {
-    await fetch("/api/auth/session", { method: "DELETE" });
+    await supabase.auth.signOut();
   } catch {
     // ignore
   }

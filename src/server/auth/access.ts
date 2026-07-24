@@ -1,6 +1,6 @@
 import "server-only";
 
-import { adminDb } from "@/server/firebaseAdmin";
+import { requireAdmin } from "@/server/supabaseAdmin";
 import {
   resolveCapabilities,
   type Capability,
@@ -15,20 +15,33 @@ import type {
 // Tenancy authorization — resolves a user's effective access for an
 // organisation/outlet and enforces named capabilities. SERVER ONLY.
 //
-// This is the authoritative check. Firestore rules provide defence-in-depth,
-// but every privileged server operation must also pass requireCapability().
+// This is the authoritative check. RLS provides defence-in-depth, but every
+// privileged server operation must also pass requireCapability(). Membership
+// rows are read with the service-role client (bypasses RLS by design).
 // ───────────────────────────────────────────────────────────────────────────
 
 export async function getOrganisationMembership(
   organisationId: string,
   uid: string,
 ): Promise<OrganisationMembership | null> {
-  const snap = await adminDb()
-    .doc(`organisations/${organisationId}/members/${uid}`)
-    .get();
-  const data = snap.data() as OrganisationMembership | undefined;
-  if (!data || data.status !== "active") return null;
-  return data;
+  const { data, error } = await requireAdmin()
+    .from("organisation_members")
+    .select("*")
+    .eq("organisation_id", organisationId)
+    .eq("uid", uid)
+    .maybeSingle();
+  if (error || !data || data.status !== "active") return null;
+  return {
+    uid: data.uid,
+    email: data.email,
+    displayName: data.display_name,
+    organisationRole: data.organisation_role,
+    status: data.status,
+    invitedBy: data.invited_by ?? undefined,
+    acceptedAt: data.accepted_at ?? undefined,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
 }
 
 export async function getOutletMembership(
@@ -36,12 +49,21 @@ export async function getOutletMembership(
   outletId: string,
   uid: string,
 ): Promise<OutletMembership | null> {
-  const snap = await adminDb()
-    .doc(`organisations/${organisationId}/outlets/${outletId}/members/${uid}`)
-    .get();
-  const data = snap.data() as OutletMembership | undefined;
-  if (!data || data.status !== "active") return null;
-  return data;
+  const { data, error } = await requireAdmin()
+    .from("outlet_members")
+    .select("*")
+    .eq("organisation_id", organisationId)
+    .eq("outlet_id", outletId)
+    .eq("uid", uid)
+    .maybeSingle();
+  if (error || !data || data.status !== "active") return null;
+  return {
+    uid: data.uid,
+    outletRole: data.outlet_role,
+    status: data.status,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
 }
 
 export async function getEffectiveAccess(args: {

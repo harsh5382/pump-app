@@ -1,6 +1,4 @@
-import { collection, addDoc } from "firebase/firestore";
-import { db } from "./firebase";
-import type { AuditLog } from "@/types";
+import { supabase } from "./supabase/client";
 
 export async function logAudit(
   userId: string,
@@ -9,13 +7,12 @@ export async function logAudit(
   resource: string,
   details?: string
 ) {
-  const entry: Omit<AuditLog, "id"> = {
+  await supabase.from("auditLogs").insert({
     userId,
     userEmail,
     action,
     resource,
-    details,
+    details: details ?? null,
     createdAt: new Date().toISOString(),
-  };
-  await addDoc(collection(db, "auditLogs"), entry);
+  });
 }

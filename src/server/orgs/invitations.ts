@@ -1,7 +1,7 @@
 "use server";
 
 import { randomBytes, createHash } from "crypto";
-import { adminDb, isAdminConfigured } from "@/server/firebaseAdmin";
+import { requireAdmin, isAdminConfigured } from "@/server/supabaseAdmin";
 import { requireUser } from "@/server/auth/session";
 import { requireCapability } from "@/server/auth/access";
 import type { OrganisationRole, OutletRole } from "@/types";
@@ -51,28 +51,27 @@ export async function createInvitation(
   }
 
   const token = randomBytes(32).toString("hex");
-  const now = new Date().toISOString();
   const expiresAt = new Date(
     Date.now() + 7 * 24 * 60 * 60 * 1000,
   ).toISOString();
 
-  const ref = adminDb()
-    .collection(`organisations/${input.organisationId}/invitations`)
-    .doc();
-  await ref.set({
-    id: ref.id,
-    organisationId: input.organisationId,
-    tokenHash: hashToken(token),
-    email,
-    organisationRole: input.organisationRole,
-    outletRoles: input.outletRoles ?? {},
-    status: "pending",
-    invitedBy: user.uid,
-    expiresAt,
-    createdAt: now,
-  });
+  const { data, error } = await requireAdmin()
+    .from("invitations")
+    .insert({
+      organisation_id: input.organisationId,
+      token_hash: hashToken(token),
+      email,
+      organisation_role: input.organisationRole,
+      outlet_roles: input.outletRoles ?? {},
+      status: "pending",
+      invited_by: user.uid,
+      expires_at: expiresAt,
+    })
+    .select("id")
+    .single();
 
-  return { ok: true, invitationId: ref.id, token };
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, invitationId: data.id, token };
 }
 
 export interface AcceptInvitationInput {
@@ -87,9 +86,10 @@ export interface AcceptInvitationResult {
   needsBackend?: boolean;
 }
 
-// acceptInvitation — the invited user (now signed in) redeems the token. Atomic
-// and idempotent: rejects expired/used/revoked/mismatched invitations and grants
-// org + outlet memberships plus the accessIndex entry in one transaction.
+// acceptInvitation — the invited user (now signed in) redeems the token.
+// Atomic and idempotent via the accept_invitation() SQL function: it rejects
+// expired/used/revoked/mismatched invitations and grants org + outlet
+// memberships in one transaction.
 export async function acceptInvitation(
   input: AcceptInvitationInput,
 ): Promise<AcceptInvitationResult> {
@@ -103,76 +103,19 @@ export async function acceptInvitation(
     return { ok: false, error: "You must be signed in to accept an invite." };
   }
 
-  const db = adminDb();
-  const tokenHash = hashToken(input.token ?? "");
-  const matches = await db
-    .collection(`organisations/${input.organisationId}/invitations`)
-    .where("tokenHash", "==", tokenHash)
-    .limit(1)
-    .get();
-
-  if (matches.empty) {
-    return { ok: false, error: "Invitation not found." };
-  }
-  const invRef = matches.docs[0].ref;
-  const inv = matches.docs[0].data();
-
-  if (inv.status !== "pending") {
-    return { ok: false, error: "This invitation has already been used or revoked." };
-  }
-  if (new Date(inv.expiresAt).getTime() < Date.now()) {
-    return { ok: false, error: "This invitation has expired." };
-  }
-  if (inv.email && user.email && inv.email !== user.email.toLowerCase()) {
-    return { ok: false, error: "This invitation was issued to a different email." };
-  }
-
-  const now = new Date().toISOString();
-  const orgRef = db.doc(`organisations/${input.organisationId}`);
-  const orgSnap = await orgRef.get();
-  const orgName = (orgSnap.data()?.name as string) ?? "Organisation";
-
-  await db.runTransaction(async (tx) => {
-    tx.set(orgRef.collection("members").doc(user.uid), {
-      uid: user.uid,
-      email: user.email ?? "",
-      displayName: (user.name as string) ?? user.email ?? "Member",
-      organisationRole: inv.organisationRole,
-      status: "active",
-      invitedBy: inv.invitedBy,
-      acceptedAt: now,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    const outletRoles: Record<string, OutletRole> = inv.outletRoles ?? {};
-    for (const [outletId, outletRole] of Object.entries(outletRoles)) {
-      tx.set(
-        orgRef.collection("outlets").doc(outletId).collection("members").doc(user.uid),
-        {
-          uid: user.uid,
-          outletRole,
-          status: "active",
-          createdAt: now,
-          updatedAt: now,
-        },
-      );
-    }
-
-    tx.set(db.doc(`users/${user.uid}/accessIndex/${input.organisationId}`), {
-      organisationId: input.organisationId,
-      organisationName: orgName,
-      organisationRole: inv.organisationRole,
-      outletRoles,
-      updatedAt: now,
-    });
-
-    tx.update(invRef, {
-      status: "accepted",
-      acceptedByUid: user.uid,
-      acceptedAt: now,
-    });
+  const { data, error } = await requireAdmin().rpc("accept_invitation", {
+    p_user_id: user.uid,
+    p_email: user.email ?? "",
+    p_display_name: user.name ?? user.email ?? "Member",
+    p_org_id: input.organisationId,
+    p_token_hash: hashToken(input.token ?? ""),
   });
 
-  return { ok: true, organisationId: input.organisationId };
+  if (error) return { ok: false, error: error.message };
+
+  const result = data as { ok: boolean; error?: string; organisationId?: string };
+  if (!result?.ok) {
+    return { ok: false, error: result?.error ?? "Could not accept invitation." };
+  }
+  return { ok: true, organisationId: result.organisationId ?? input.organisationId };
 }
