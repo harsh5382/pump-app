@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useOrg } from "@/context/OrgContext";
 import { useToast } from "@/components/ui/Toast";
 import { getFuelTypes, addFuelType, updateFuelType, deleteFuelType } from "@/lib/db";
 import type { FuelType } from "@/types";
@@ -12,7 +13,8 @@ import { useMediaQuery } from "@/lib/useMediaQuery";
 import { Pencil, Trash2, Check, X } from "lucide-react";
 
 export default function FuelTypesPage() {
-  const { profile, hasRole } = useAuth();
+  const { profile } = useAuth();
+  const { hasCapability } = useOrg();
   const toast = useToast();
   const [list, setList] = useState<FuelType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +27,7 @@ export default function FuelTypesPage() {
   const [deleteTarget, setDeleteTarget] = useState<FuelType | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const isAdmin = hasRole("admin");
+  const isAdmin = hasCapability("outlet.manage_assets");
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   useEffect(() => {

@@ -1,10 +1,10 @@
 "use client";
 
-import { useAuth } from "@/context/AuthContext";
+import { useOrg } from "@/context/OrgContext";
 
 export default function SettingsPage() {
-  const { hasRole } = useAuth();
-  const isAdmin = hasRole("admin");
+  const { hasCapability } = useOrg();
+  const isAdmin = hasCapability("outlet.manage_settings");
 
   if (!isAdmin) {
     return (

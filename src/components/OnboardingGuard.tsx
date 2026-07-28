@@ -14,7 +14,7 @@ export default function OnboardingGuard({
 }: {
   children: React.ReactNode;
 }) {
-  const { loading, needsOnboarding } = useOrg();
+  const { loading, needsOnboarding, backendConfigured, currentOutletId } = useOrg();
   const router = useRouter();
 
   useEffect(() => {
@@ -24,6 +24,9 @@ export default function OnboardingGuard({
 
   if (loading) return <FuelLoader fullScreen />;
   if (needsOnboarding) return null;
+  // Data pages are scoped to the active outlet — hold until it has resolved so
+  // no query fires without one. (Only relevant when the backend is configured.)
+  if (backendConfigured && !currentOutletId) return <FuelLoader fullScreen />;
 
   return <>{children}</>;
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useOrg } from "@/context/OrgContext";
 import { useToast } from "@/components/ui/Toast";
 import { getTanks, getFuelTypes, addTank, updateTank, deleteTank, addDipEntry, getDipEntriesByDate, updateDipEntry, deleteDipEntry } from "@/lib/db";
 import type { Tank, FuelType, DipEntry } from "@/types";
@@ -16,7 +17,8 @@ import { Pencil, Trash2, Check, X } from "lucide-react";
 const today = new Date().toISOString().split("T")[0];
 
 export default function TanksPage() {
-  const { profile, hasRole } = useAuth();
+  const { profile } = useAuth();
+  const { hasCapability } = useOrg();
   const toast = useToast();
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [fuelTypes, setFuelTypes] = useState<FuelType[]>([]);
@@ -43,7 +45,7 @@ export default function TanksPage() {
   const [editActualQty, setEditActualQty] = useState("");
   const [deleteDipTarget, setDeleteDipTarget] = useState<DipEntry | null>(null);
   const [deletingDip, setDeletingDip] = useState(false);
-  const isAdmin = hasRole("admin");
+  const isAdmin = hasCapability("outlet.manage_assets");
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   useEffect(() => {

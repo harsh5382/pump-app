@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useOrg } from "@/context/OrgContext";
 import { createInvitation } from "@/server/orgs/invitations";
 import { useToast } from "@/components/ui/Toast";
@@ -51,6 +52,8 @@ export default function TeamPage() {
   const [inviteLink, setInviteLink] = useState("");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  /** Set when the plan's limits blocked the invite — drives the upgrade CTA. */
+  const [upgradeNotice, setUpgradeNotice] = useState("");
   const toast = useToast();
 
   const canManage = hasCapability("org.manage_members");
@@ -62,8 +65,8 @@ export default function TeamPage() {
       <div className="card p-6">
         <p className="card-title mb-1">Team</p>
         <p className="text-sm text-ink-500">
-          The trusted backend isn&apos;t configured yet. Add the Firebase
-          service account to enable invitations.
+          The trusted backend isn&apos;t configured yet. Set
+          SUPABASE_SERVICE_ROLE_KEY to enable invitations.
         </p>
       </div>
     );
@@ -84,6 +87,7 @@ export default function TeamPage() {
     e.preventDefault();
     setInviteLink("");
     setCopied(false);
+    setUpgradeNotice("");
     if (!currentOutletId) {
       toast.warning("Select an outlet first.");
       return;
@@ -98,6 +102,9 @@ export default function TeamPage() {
         outletRoles: { [currentOutletId]: p.outletRole },
       });
       if (!result.ok || !result.token) {
+        if (result.upgradeRequired) {
+          setUpgradeNotice(result.error ?? "Your plan limit has been reached.");
+        }
         toast.error(result.error ?? "Could not create the invitation.");
       } else {
         const origin =
@@ -124,6 +131,23 @@ export default function TeamPage() {
           their own password — you never handle their credentials.
         </p>
       </div>
+
+      {upgradeNotice && (
+        <div className="card p-4 border-amber-500/40 bg-amber-500/[0.06]">
+          <p className="text-[13px] font-medium text-ink-900 mb-1">
+            Plan limit reached
+          </p>
+          <p className="text-[13px] text-ink-600">{upgradeNotice}</p>
+          {hasCapability("org.manage_billing") && (
+            <Link
+              href="/dashboard/billing"
+              className="btn btn-primary mt-3 inline-flex"
+            >
+              View plans →
+            </Link>
+          )}
+        </div>
+      )}
 
       <form onSubmit={handleInvite} className="card p-6 space-y-5">
         <p className="card-title">Invite a teammate</p>

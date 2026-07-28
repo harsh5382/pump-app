@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useOrg } from "@/context/OrgContext";
 import { getNotifications, markNotificationRead, deleteNotification } from "@/lib/db";
 import type { Notification } from "@/types";
 import { formatDate } from "@/lib/utils";
@@ -10,12 +11,13 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import FuelLoader from "@/components/FuelLoader";
 
 export default function NotificationsPage() {
-  const { user, hasRole } = useAuth();
+  const { user } = useAuth();
+  const { hasCapability } = useOrg();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Notification | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const isAdmin = hasRole("admin");
+  const isAdmin = hasCapability("report.view");
 
   useEffect(() => {
     getNotifications(user?.uid).then(setNotifications).finally(() => setLoading(false));

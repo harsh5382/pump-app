@@ -41,9 +41,18 @@
   --border: #e8e3dc;
   --border-strong: #d6cfc4;
 
-  /* Type */
-  --font-serif: var(--font-serif-google), "Instrument Serif", Georgia, serif;
-  --font-sans: var(--font-sans-google), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* ---- Type ----
+     Two faces, one family. Geist Sans carries all prose and headings; Geist
+     Mono carries every figure, because it has true tabular numerals and the
+     old display serif did not — stat columns used to drift as values changed.
+
+     --font-display is the canonical name for heading type. --font-serif is
+     kept as an alias only so the long-standing `.serif` class and Tailwind's
+     `font-serif` keep working; nothing in the project is serif any more. */
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: var(--font-display);
+  --mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Radius */
   --r-sm: 6px;
@@ -71,19 +80,26 @@ body {
   letter-spacing: -0.005em;
 }
 
+/* Heading type. The class is still called `.serif` for back-compat with ~30
+   files; it now renders the display sans at 600, since a sans at 400 reads
+   weak where the old display serif at 400 read strong. */
 .serif {
-  font-family: var(--font-serif);
-  letter-spacing: -0.01em;
-  font-weight: 400;
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  font-weight: 600;
 }
 
+/* Figures. Both classes route to the mono face so digits are monospaced AND
+   tabular — columns of numbers stay aligned regardless of the values. */
 .num {
+  font-family: var(--mono);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
   letter-spacing: -0.01em;
 }
 
 .mono {
+  font-family: var(--mono);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
   letter-spacing: -0.02em;
@@ -106,11 +122,13 @@ body {
     @apply flex items-start justify-between gap-4 sm:gap-6 mb-6 sm:mb-8;
   }
   .page-title {
-    font-family: var(--font-serif);
-    @apply text-[28px] sm:text-[40px] leading-[1.1] font-normal tracking-[-0.015em];
+    font-family: var(--font-display);
+    @apply text-[28px] sm:text-[40px] leading-[1.1] font-semibold tracking-[-0.03em];
     color: var(--ink-900);
   }
-  .page-title em { font-style: italic; color: var(--ink-500); }
+  /* Geist has no true italic, so emphasis is carried by weight and colour
+     rather than a synthesised oblique. */
+  .page-title em { font-style: normal; font-weight: 400; color: var(--ink-500); }
   .page-sub {
     @apply mt-2 text-sm;
     color: var(--ink-500);
@@ -126,8 +144,8 @@ body {
     @apply flex items-start justify-between gap-4 mb-5;
   }
   .card-title {
-    font-family: var(--font-serif);
-    @apply text-[20px] sm:text-[22px] leading-tight font-normal;
+    font-family: var(--font-display);
+    @apply text-[20px] sm:text-[22px] leading-tight font-semibold tracking-[-0.02em];
     color: var(--ink-900);
   }
   .card-subtitle {
@@ -262,6 +280,7 @@ body {
   }
   .stat-value {
     @apply text-[26px] sm:text-[28px] leading-[1.15] font-bold truncate;
+    font-family: var(--mono);
     color: var(--ink-900);
     letter-spacing: -0.04em;
     font-variant-numeric: tabular-nums;
@@ -282,7 +301,7 @@ body {
   }
   .avatar-sm { width: 28px; height: 28px; @apply text-[10px]; }
   .avatar-lg { width: 56px; height: 56px; @apply text-lg; }
-  .avatar-xl { width: 80px; height: 80px; @apply text-2xl; font-family: var(--font-serif); }
+  .avatar-xl { width: 80px; height: 80px; @apply text-2xl font-semibold; font-family: var(--font-display); }
 
   /* ---- Segmented ---- */
   .seg {
@@ -331,8 +350,8 @@ body {
     border: 1px solid var(--border);
   }
   .mobile-list-card-title {
-    font-family: var(--font-serif);
-    @apply text-[18px] font-normal mb-2;
+    font-family: var(--font-display);
+    @apply text-[18px] font-semibold mb-2 tracking-[-0.02em];
     color: var(--ink-900);
   }
   .mobile-list-card-row { @apply text-sm py-1; color: var(--ink-500); }
@@ -347,8 +366,8 @@ body {
   /* ---- Back-compat aliases (legacy page markup) ---- */
   .page-subtitle { @apply mt-2 text-sm; color: var(--ink-500); }
   .card-header {
-    font-family: var(--font-serif);
-    @apply text-[20px] sm:text-[22px] leading-tight font-normal mb-4;
+    font-family: var(--font-display);
+    @apply text-[20px] sm:text-[22px] leading-tight font-semibold mb-4 tracking-[-0.02em];
     color: var(--ink-900);
   }
   .btn-secondary {
@@ -518,9 +537,10 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 22px;
-  letter-spacing: -0.01em;
+  font-weight: 600;
+  letter-spacing: -0.03em;
   margin-right: 36px;
 }
 .lp .brand-mark {
@@ -532,8 +552,9 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 17px;
-  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 600;
+  font-family: var(--font-display);
 }
 .lp .nav-links { display: flex; gap: 28px; font-size: 13px; color: var(--ink-700); }
 .lp .nav-links a:hover { color: var(--ink-900); }
@@ -563,15 +584,15 @@ body {
 }
 .lp .eyebrow::before { content: ""; width: 22px; height: 1px; background: currentColor; }
 .lp h1.hero-head {
-  font-family: var(--font-serif);
-  font-weight: 400;
+  font-family: var(--font-display);
+  font-weight: 600;
   font-size: clamp(52px, 8.5vw, 112px);
   line-height: 0.96;
   letter-spacing: -0.025em;
   margin: 0 0 30px;
   max-width: 13ch;
 }
-.lp h1.hero-head em { font-style: italic; color: var(--ink-500); }
+.lp h1.hero-head em { font-style: normal; font-weight: 400; color: var(--ink-500); }
 .lp .hero-lede {
   font-size: 18px;
   line-height: 1.6;
@@ -621,15 +642,20 @@ body {
 .lp .pni.act { background: var(--accent); color: #fff; }
 .lp .pni-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.5; }
 .lp .peek-main { padding: 28px 32px; background: var(--bg); }
-.lp .peek-title { font-family: var(--font-serif); font-size: 26px; margin: 0 0 4px; line-height: 1.1; }
+.lp .peek-title { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.025em; font-size: 26px; margin: 0 0 4px; line-height: 1.1; }
 .lp .peek-sub { font-size: 11px; color: var(--ink-500); margin-bottom: 20px; }
 .lp .peek-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
 .lp .ps { background: #fff; border: 1px solid var(--border); border-radius: 9px; padding: 12px; }
 .lp .ps-l { font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-500); margin-bottom: 5px; }
-.lp .ps-v { font-family: var(--font-serif); font-size: 20px; line-height: 1; }
+.lp .ps-v { font-family: var(--mono); font-size: 20px; line-height: 1; letter-spacing: -0.03em; }
+/* Units ride alongside the figure but stay in the sans face — a monospaced
+   "L" or "kL" sits in a full digit-width cell and reads as a gap. */
+.lp .ps-v .u { font-family: var(--font-sans); font-size: 0.72em; font-weight: 500; color: var(--ink-500); margin-left: 3px; letter-spacing: 0; }
+/* Some stat slots hold a name rather than a number — those are not mono. */
+.lp .ps-v.is-label { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.02em; }
 .lp .ps-d { font-size: 10px; color: #047857; margin-top: 3px; }
 .lp .peek-chart-box { background: #fff; border: 1px solid var(--border); border-radius: 9px; padding: 14px; height: 148px; }
-.lp .peek-chart-box h6 { font-family: var(--font-serif); font-size: 14px; font-weight: 400; margin: 0 0 6px; }
+.lp .peek-chart-box h6 { font-family: var(--font-display); font-size: 14px; font-weight: 600; margin: 0 0 6px; }
 @keyframes drawLine { to { stroke-dashoffset: 0; } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .lp .c-line { stroke-dasharray: 520; stroke-dashoffset: 520; animation: drawLine 2.4s ease-out 0.8s forwards; }
@@ -657,7 +683,7 @@ body {
 }
 .lp .ey::before { content: ""; width: 18px; height: 1px; background: currentColor; }
 .lp .sh {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-weight: 400;
   font-size: clamp(38px, 5.5vw, 64px);
   line-height: 1.02;
@@ -665,7 +691,7 @@ body {
   margin: 0 0 20px;
   max-width: 18ch;
 }
-.lp .sh em { font-style: italic; color: var(--ink-500); }
+.lp .sh em { font-style: normal; font-weight: 400; color: var(--ink-500); }
 .lp .sl { font-size: 16px; line-height: 1.6; color: var(--ink-700); max-width: 52ch; margin: 0; }
 @media (max-width: 840px) {
   .lp .si { padding: 80px 20px; }
@@ -686,17 +712,17 @@ body {
   border-bottom: 1px solid var(--border);
 }
 .lp .prob-item:last-child { border: none; }
-.lp .prob-n { font-family: var(--font-serif); font-style: italic; font-size: 30px; color: var(--ink-500); line-height: 1; }
-.lp .prob-item h4 { font-family: var(--font-serif); font-size: 20px; font-weight: 400; margin: 0 0 6px; line-height: 1.2; }
+.lp .prob-n { font-family: var(--mono); font-size: 30px; color: var(--ink-500); line-height: 1; }
+.lp .prob-item h4 { font-family: var(--font-display); font-size: 20px; font-weight: 600; margin: 0 0 6px; line-height: 1.2; }
 .lp .prob-item p { margin: 0; font-size: 13px; color: var(--ink-500); line-height: 1.6; }
 .lp .prob-aside {
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 32px;
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-display);
   font-size: 22px;
+  letter-spacing: -0.015em;
   line-height: 1.4;
   color: var(--ink-700);
   position: sticky;
@@ -709,7 +735,7 @@ body {
   color: var(--ink-200);
   display: block;
   margin-bottom: 20px;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
 }
 .lp .attr-row {
   font-family: var(--font-sans);
@@ -770,7 +796,7 @@ body {
   justify-content: center;
   color: var(--accent);
 }
-.lp .feat h3 { font-family: var(--font-serif); font-weight: 400; font-size: 24px; line-height: 1.15; margin: 0; letter-spacing: -0.01em; }
+.lp .feat h3 { font-family: var(--font-display); font-weight: 600; font-size: 24px; line-height: 1.15; margin: 0; letter-spacing: -0.01em; }
 .lp .feat p { color: var(--ink-700); margin: 0; font-size: 13px; line-height: 1.6; max-width: 40ch; }
 .lp .feat-tag { margin-top: auto; font-family: var(--mono); font-size: 10px; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.12em; }
 .lp .feat.wide { grid-column: 1 / -1; min-height: 200px; }
@@ -797,8 +823,8 @@ body {
   margin-top: 56px;
 }
 .lp .step { background: var(--ink-900); padding: 34px 26px; min-height: 220px; display: flex; flex-direction: column; gap: 14px; }
-.lp .step-n { font-family: var(--font-serif); font-style: italic; font-size: 34px; color: rgba(255, 255, 255, 0.35); line-height: 1; }
-.lp .step h4 { font-family: var(--font-serif); font-weight: 400; font-size: 20px; margin: 0; line-height: 1.2; }
+.lp .step-n { font-family: var(--mono); font-size: 34px; color: rgba(255, 255, 255, 0.35); line-height: 1; }
+.lp .step h4 { font-family: var(--font-display); font-weight: 600; font-size: 20px; margin: 0; line-height: 1.2; }
 .lp .step p { font-size: 13px; color: #94a3b8; margin: 0; line-height: 1.55; }
 @media (max-width: 840px) {
   .lp .steps { grid-template-columns: 1fr 1fr; }
@@ -845,17 +871,20 @@ body {
   border-bottom: 2px solid var(--ink-900);
   margin-bottom: 20px;
 }
-.lp .r-head h5 { font-family: var(--font-serif); font-size: 24px; font-weight: 400; margin: 0; }
+.lp .r-head h5 { font-family: var(--font-display); font-size: 24px; font-weight: 600; margin: 0; }
 .lp .r-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); color: var(--ink-700); }
 .lp .r-total {
   display: flex;
   justify-content: space-between;
   padding: 14px 0;
   border-top: 2px solid var(--ink-900);
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
+  font-weight: 600;
   font-size: 18px;
   margin-top: 16px;
 }
+/* The total's figure is a number like every other — mono, tabular. */
+.lp .r-total span:last-child { font-family: var(--mono); }
 .lp .r-stamp {
   position: absolute;
   top: 36px;
@@ -863,9 +892,11 @@ body {
   background: #047857;
   color: #fff;
   padding: 7px 18px;
-  font-family: var(--font-serif);
-  font-size: 13px;
-  font-style: italic;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   border-radius: 4px;
   transform: rotate(8deg);
   box-shadow: 0 4px 12px rgba(4, 120, 87, 0.3);
@@ -885,8 +916,8 @@ body {
 }
 .lp .stats-inner { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
 .lp .sb { text-align: center; }
-.lp .sb-v { font-family: var(--font-serif); font-size: clamp(48px, 6vw, 76px); line-height: 1; letter-spacing: -0.02em; }
-.lp .sb-v em { font-style: italic; color: var(--ink-500); font-size: 0.6em; }
+.lp .sb-v { font-family: var(--mono); font-size: clamp(48px, 6vw, 76px); line-height: 1; letter-spacing: -0.02em; }
+.lp .sb-v em { font-style: normal; font-weight: 400; color: var(--ink-500); font-size: 0.6em; }
 .lp .sb-l { font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-500); margin-top: 10px; }
 @media (max-width: 840px) {
   .lp .stats-band { padding: 60px 20px; }
@@ -920,8 +951,10 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.12em;
 }
-.lp .plan h4 { font-family: var(--font-serif); font-weight: 400; font-size: 24px; margin: 0; }
-.lp .plan .pv { font-family: var(--font-serif); font-size: 44px; line-height: 1; letter-spacing: -0.02em; }
+.lp .plan h4 { font-family: var(--font-display); font-weight: 600; font-size: 24px; margin: 0; }
+.lp .plan .pv { font-family: var(--mono); font-size: 44px; line-height: 1; letter-spacing: -0.04em; }
+/* "Free" is a word, not a price — monospacing it looks like a typo. */
+.lp .plan .pv.is-label { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.03em; }
 .lp .plan .pv small { font-family: var(--font-sans); font-size: 12px; font-weight: 400; color: var(--ink-500); }
 .lp .plan.pop .pv small { color: var(--ink-400); }
 .lp .plan ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 9px; font-size: 13px; }
@@ -964,7 +997,7 @@ body {
   justify-content: space-between;
   align-items: center;
   list-style: none;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 20px;
   font-weight: 400;
   letter-spacing: -0.01em;
@@ -973,7 +1006,7 @@ body {
 .lp details.faq summary::-webkit-details-marker { display: none; }
 .lp details.faq summary::after {
   content: "+";
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 22px;
   color: var(--ink-500);
   transition: transform 200ms var(--ease);
@@ -987,14 +1020,14 @@ body {
 /* Final CTA */
 .lp .final-cta { text-align: center; padding: 140px 40px; position: relative; z-index: 2; }
 .lp .final-cta h2 {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-weight: 400;
   font-size: clamp(60px, 10vw, 128px);
   line-height: 0.94;
   letter-spacing: -0.03em;
   margin: 0 0 20px;
 }
-.lp .final-cta h2 em { font-style: italic; color: var(--ink-500); }
+.lp .final-cta h2 em { font-style: normal; font-weight: 400; color: var(--ink-500); }
 .lp .final-cta p { font-size: 17px; color: var(--ink-700); max-width: 48ch; margin: 0 auto 36px; }
 .lp .final-cta .acts { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 

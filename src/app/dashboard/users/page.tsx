@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useOrg } from "@/context/OrgContext";
 import { useToast } from "@/components/ui/Toast";
 import { getUsers, updateUserProfile, deleteUserProfile } from "@/lib/db";
 import type { UserProfile, UserRole } from "@/types";
@@ -12,7 +13,8 @@ import { useMediaQuery } from "@/lib/useMediaQuery";
 import { Pencil, Check, X, Trash2 } from "lucide-react";
 
 export default function UsersPage() {
-  const { profile, hasRole, createUser: authCreateUser } = useAuth();
+  const { profile, createUser: authCreateUser } = useAuth();
+  const { hasCapability } = useOrg();
   const toast = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +29,7 @@ export default function UsersPage() {
   const [deleteTarget, setDeleteTarget] = useState<UserProfile | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const isAdmin = hasRole("admin");
+  const isAdmin = hasCapability("org.manage_members");
   const currentUid = profile?.uid;
   const isMobile = useMediaQuery("(max-width: 768px)");
 

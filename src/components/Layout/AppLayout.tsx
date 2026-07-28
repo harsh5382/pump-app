@@ -49,6 +49,7 @@ const nav: NavItem[] = [
 type AdminNavItem = NavItem & { capability: Capability };
 
 const adminNav: AdminNavItem[] = [
+  { href: "/dashboard/billing", label: "Billing", icon: CreditCard, capability: "org.manage_billing" },
   { href: "/dashboard/team", label: "Team", icon: UserPlus, capability: "org.manage_members" },
   { href: "/dashboard/fuel-types", label: "Fuel Types", icon: Fuel, capability: "outlet.manage_assets" },
   { href: "/dashboard/users", label: "Users", icon: Users, capability: "org.manage_members" },
@@ -69,6 +70,7 @@ const TITLES: Record<string, [string, string]> = {
   "/dashboard/stock": ["Stock", "System vs dip reconciliation"],
   "/dashboard/reports": ["Reports", "Exports & analytics"],
   "/dashboard/notifications": ["Alerts", "Stock, meter & payment alerts"],
+  "/dashboard/billing": ["Billing", "Plan, usage & invoices"],
   "/dashboard/fuel-types": ["Fuel Types", "Petrol, diesel & more"],
   "/dashboard/users": ["Users", "Team & roles"],
   "/dashboard/team": ["Team", "Invite managers & staff"],
@@ -78,14 +80,13 @@ const TITLES: Record<string, [string, string]> = {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, signOut, hasRole } = useAuth();
-  const { currentOrg, hasCapability } = useOrg();
+  const { profile, signOut } = useAuth();
+  const { currentOrg, hasCapability, currentOutletId } = useOrg();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Admin section items the current user is allowed to see (capability-based,
-  // with legacy global-admin role as a fallback during migration).
-  const visibleAdminNav = adminNav.filter(
-    (item) => hasCapability(item.capability) || hasRole("admin"),
+  // Admin section items the current user is allowed to see (capability-based).
+  const visibleAdminNav = adminNav.filter((item) =>
+    hasCapability(item.capability),
   );
 
   const handleSignOut = async () => {
@@ -250,7 +251,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </Link>
         </header>
 
-        <main className="flex-1 px-5 sm:px-8 py-6 sm:py-8 overflow-x-hidden">
+        {/* key on the active outlet so switching outlets remounts the page,
+            re-fetching all data for the newly-selected outlet. */}
+        <main key={currentOutletId} className="flex-1 px-5 sm:px-8 py-6 sm:py-8 overflow-x-hidden">
           {children}
         </main>
       </div>

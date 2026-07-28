@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { establishServerSession } from "@/lib/sessionClient";
+import { setActiveOutletId } from "@/lib/outletContext";
 import { loadMyAccess, type MyAccess } from "@/server/orgs/access";
 import {
   resolveCapabilities,
@@ -92,6 +93,12 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
       (typeof window !== "undefined" ? localStorage.getItem(OUTLET_KEY) : null);
     return outletIds.includes(stored ?? "") ? stored! : outletIds[0];
   }, [currentOrg, currentOutletId]);
+
+  // Expose the resolved outlet to the client data layer (db.ts / audit.ts),
+  // which scopes every query by it. Cleared on sign-out (resolvedOutletId null).
+  useEffect(() => {
+    setActiveOutletId(resolvedOutletId);
+  }, [resolvedOutletId]);
 
   const setCurrentOrg = useCallback((organisationId: string) => {
     setCurrentOrgId(organisationId);

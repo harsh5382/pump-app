@@ -4,6 +4,10 @@ import { randomBytes, createHash } from "crypto";
 import { requireAdmin, isAdminConfigured } from "@/server/supabaseAdmin";
 import { requireUser } from "@/server/auth/session";
 import { requireCapability } from "@/server/auth/access";
+import {
+  assertCanAddMember,
+  EntitlementError,
+} from "@/server/billing/entitlements";
 import type { OrganisationRole, OutletRole } from "@/types";
 
 function hashToken(token: string): string {
@@ -24,6 +28,8 @@ export interface CreateInvitationResult {
   token?: string;
   error?: string;
   needsBackend?: boolean;
+  /** Set when the plan's limits blocked this invite — drives the upgrade CTA. */
+  upgradeRequired?: "member_limit" | "manager_limit" | "subscription_inactive";
 }
 
 // createInvitation — an authorised org admin/owner invites a teammate. We store
@@ -48,6 +54,24 @@ export async function createInvitation(
     });
   } catch {
     return { ok: false, error: "Not authorised to invite members." };
+  }
+
+  // Commercial gate: a pending invite reserves a seat, so this is checked
+  // BEFORE the invitation row is written.
+  try {
+    const invitingManager = Object.values(input.outletRoles ?? {}).includes(
+      "manager",
+    );
+    await assertCanAddMember(input.organisationId, { invitingManager });
+  } catch (err) {
+    if (err instanceof EntitlementError) {
+      return {
+        ok: false,
+        error: err.message,
+        upgradeRequired: err.reason as CreateInvitationResult["upgradeRequired"],
+      };
+    }
+    return { ok: false, error: "Could not verify your plan limits." };
   }
 
   const token = randomBytes(32).toString("hex");
