@@ -125,12 +125,16 @@ export default function HomePage() {
                 <div className="peek-stats">
                   <div className="ps">
                     <div className="ps-l">Petrol sold</div>
-                    <div className="ps-v">3,240 L</div>
+                    <div className="ps-v">
+                      3,240<span className="u">L</span>
+                    </div>
                     <div className="ps-d">↑ today</div>
                   </div>
                   <div className="ps">
                     <div className="ps-l">Diesel sold</div>
-                    <div className="ps-v">5,110 L</div>
+                    <div className="ps-v">
+                      5,110<span className="u">L</span>
+                    </div>
                     <div className="ps-d">↑ today</div>
                   </div>
                   <div className="ps">
@@ -142,7 +146,7 @@ export default function HomePage() {
                   </div>
                   <div className="ps">
                     <div className="ps-l">Stock low</div>
-                    <div className="ps-v" style={{ color: "#b91c1c" }}>
+                    <div className="ps-v is-label" style={{ color: "#b91c1c" }}>
                       Tank 2
                     </div>
                     <div className="ps-d" style={{ color: "#b91c1c" }}>
@@ -488,7 +492,7 @@ export default function HomePage() {
           <div className="price-grid">
             <div className="plan">
               <h4>Forecourt</h4>
-              <div className="pv">
+              <div className="pv is-label">
                 Free<small> / forever</small>
               </div>
               <ul>

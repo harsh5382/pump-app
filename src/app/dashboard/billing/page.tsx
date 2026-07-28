@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { useOrg } from "@/context/OrgContext";
 import { getBillingOverview, type BillingOverview } from "@/server/billing/overview";
+import {
+  cancelPlanAtPeriodEnd,
+  confirmPlanCheckout,
+  startPlanCheckout,
+} from "@/server/billing/checkout";
+import { openSubscriptionCheckout } from "@/lib/razorpayCheckout";
 import { rupeesFromPaise } from "@/lib/plans";
+import { useToast } from "@/components/ui/Toast";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import FuelLoader from "@/components/FuelLoader";
 
 const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
@@ -17,6 +25,13 @@ const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
   },
   suspended: { label: "Suspended", tone: "bg-red-500/10 text-red-700" },
   cancelled: { label: "Cancelled", tone: "bg-red-500/10 text-red-700" },
+};
+
+const INVOICE_TONE: Record<string, string> = {
+  paid: "text-emerald-700",
+  failed: "text-red-700",
+  refunded: "text-ink-500",
+  issued: "text-amber-700",
 };
 
 function formatDate(iso?: string) {
@@ -74,8 +89,12 @@ function UsageBar({
 
 export default function BillingPage() {
   const { currentOrg, hasCapability, loading: orgLoading } = useOrg();
+  const toast = useToast();
   const [data, setData] = useState<BillingOverview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [busyPlanId, setBusyPlanId] = useState<string | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const canManageBilling = hasCapability("org.manage_billing");
 
@@ -99,6 +118,82 @@ export default function BillingPage() {
     }
     load();
   }, [orgLoading, canManageBilling, load]);
+
+  // Upgrade flow: the server creates the subscription and returns only what the
+  // sheet needs; the signed result goes straight back to the server to verify.
+  // The browser never decides that a plan was bought.
+  const handleUpgrade = useCallback(
+    async (planId: string) => {
+      if (!currentOrg) return;
+      setBusyPlanId(planId);
+      try {
+        const session = await startPlanCheckout(currentOrg.organisationId, planId);
+        if (!session.ok || !session.providerSubscriptionId) {
+          toast.error(session.error ?? "Could not start checkout.");
+          return;
+        }
+
+        const outcome = await openSubscriptionCheckout({
+          publishableKey: session.publishableKey!,
+          subscriptionId: session.providerSubscriptionId,
+          organisationName: session.organisationName ?? "Pumpline",
+          planName: session.planName ?? planId,
+          prefill: session.prefill,
+        });
+
+        if (outcome.status === "dismissed") {
+          toast.info("Checkout cancelled. Your plan is unchanged.");
+          return;
+        }
+        if (outcome.status === "failed") {
+          toast.error(outcome.message);
+          return;
+        }
+
+        const confirmed = await confirmPlanCheckout({
+          organisationId: currentOrg.organisationId,
+          providerSubscriptionId: outcome.payload.razorpay_subscription_id,
+          providerPaymentId: outcome.payload.razorpay_payment_id,
+          signature: outcome.payload.razorpay_signature,
+        });
+
+        if (!confirmed.ok) {
+          toast.error(confirmed.error ?? "Could not confirm the payment.");
+        } else if (confirmed.pending) {
+          toast.info(
+            "Payment received — your bank is still confirming the mandate. The plan activates shortly.",
+          );
+        } else {
+          toast.success(`You're on the ${session.planName} plan.`);
+        }
+        await load();
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Checkout could not be opened.",
+        );
+      } finally {
+        setBusyPlanId(null);
+      }
+    },
+    [currentOrg, toast, load],
+  );
+
+  const handleCancel = useCallback(async () => {
+    if (!currentOrg) return;
+    setCancelling(true);
+    try {
+      const result = await cancelPlanAtPeriodEnd(currentOrg.organisationId);
+      if (!result.ok) {
+        toast.error(result.error ?? "Could not cancel the subscription.");
+      } else {
+        toast.success("Cancelled. You keep access until the period ends.");
+        await load();
+      }
+    } finally {
+      setCancelling(false);
+      setConfirmCancel(false);
+    }
+  }, [currentOrg, toast, load]);
 
   if (orgLoading || loading) return <FuelLoader />;
 
@@ -134,8 +229,10 @@ export default function BillingPage() {
   };
   const trialEnds = formatDate(data.trialEndsAt);
   const periodEnds = formatDate(data.currentPeriodEnd);
+  const graceEnds = formatDate(data.graceEndsAt);
   const ent = data.entitlements!;
   const usage = data.usage!;
+  const paymentsEnabled = data.paymentsEnabled ?? false;
 
   return (
     <div className="page space-y-6">
@@ -160,12 +257,44 @@ export default function BillingPage() {
               )}
               {periodEnds && data.status !== "trialing" && (
                 <span className="text-[12px] text-ink-500">
-                  Renews {periodEnds}
+                  {data.status === "cancelled_at_period_end"
+                    ? `Access until ${periodEnds}`
+                    : `Renews ${periodEnds}`}
                 </span>
               )}
             </div>
           </div>
+          {data.canCancel && (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setConfirmCancel(true)}
+            >
+              Cancel plan
+            </button>
+          )}
         </div>
+
+        {/* Dunning states get an explicit instruction, not just a badge. */}
+        {data.status === "past_due" && (
+          <p className="mt-4 text-[13px] text-amber-700">
+            The last payment did not go through. Your bank is being retried — no
+            action is needed unless it keeps failing.
+          </p>
+        )}
+        {data.status === "grace_period" && (
+          <p className="mt-4 text-[13px] text-amber-700">
+            Payment retries have run out. Pick a plan below to restore billing
+            {graceEnds ? ` before ${graceEnds}` : ""}, after which the account is
+            suspended. Your data is kept either way.
+          </p>
+        )}
+        {data.status === "suspended" && (
+          <p className="mt-4 text-[13px] text-red-700">
+            This organisation is suspended. Billing and data export stay
+            available to you; day-to-day entry is locked until a plan is active.
+          </p>
+        )}
       </div>
 
       {/* Usage vs plan limits */}
@@ -208,38 +337,118 @@ export default function BillingPage() {
             Need more outlets or a bigger team? Move up a plan.
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {data.upgradeOptions.map((p) => (
-              <div
-                key={p.id}
-                className="rounded-[12px] border border-line p-4 flex flex-col"
-              >
-                <div className="serif text-[20px]">{p.name}</div>
-                <div className="text-[13px] text-ink-500 mt-0.5">
-                  {p.pricePaise > 0
-                    ? `${rupeesFromPaise(p.pricePaise)} / month`
-                    : "Custom pricing"}
-                </div>
-                <ul className="text-[12px] text-ink-600 mt-3 space-y-1 flex-1">
-                  <li>{p.maxOutlets} outlets</li>
-                  <li>{p.maxMembers} team members</li>
-                </ul>
-                <button
-                  type="button"
-                  className="btn btn-primary w-full mt-4"
-                  disabled
-                  title="Online payments arrive with Razorpay billing"
+            {data.upgradeOptions.map((p) => {
+              const busy = busyPlanId === p.id;
+              const buyable = paymentsEnabled && p.purchasable;
+              return (
+                <div
+                  key={p.id}
+                  className="rounded-[12px] border border-line p-4 flex flex-col"
                 >
-                  Upgrade
-                </button>
-              </div>
-            ))}
+                  <div className="serif text-[20px]">{p.name}</div>
+                  <div className="text-[13px] text-ink-500 mt-0.5">
+                    {p.pricePaise > 0
+                      ? `${rupeesFromPaise(p.pricePaise)} / month`
+                      : "Custom pricing"}
+                  </div>
+                  <ul className="text-[12px] text-ink-600 mt-3 space-y-1 flex-1">
+                    <li>{p.maxOutlets} outlets</li>
+                    <li>{p.maxMembers} team members</li>
+                  </ul>
+                  <button
+                    type="button"
+                    className="btn btn-primary w-full mt-4"
+                    disabled={!buyable || busyPlanId !== null}
+                    onClick={() => handleUpgrade(p.id)}
+                    title={
+                      !p.purchasable
+                        ? "Contact support for pricing"
+                        : !paymentsEnabled
+                          ? "Online payments are not configured"
+                          : undefined
+                    }
+                  >
+                    {busy
+                      ? "Opening…"
+                      : p.purchasable
+                        ? `Upgrade to ${p.name}`
+                        : "Contact support"}
+                  </button>
+                </div>
+              );
+            })}
           </div>
           <p className="text-[11px] text-ink-400 mt-4">
-            Online payment is being connected. Contact support to change your plan
-            in the meantime.
+            {paymentsEnabled
+              ? "Payments are processed by Razorpay. Card and UPI details are entered on Razorpay's secure sheet and never reach Pumpline."
+              : "Online payment is being connected. Contact support to change your plan in the meantime."}
           </p>
         </div>
       )}
+
+      {/* Billing history */}
+      <div className="card">
+        <div className="card-title mb-3">Billing history</div>
+        {data.invoices && data.invoices.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="text-left text-ink-500 border-b border-line">
+                  <th className="py-2 font-medium">Date</th>
+                  <th className="py-2 font-medium">Description</th>
+                  <th className="py-2 font-medium text-right">Amount</th>
+                  <th className="py-2 font-medium text-right">Status</th>
+                  <th className="py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {data.invoices.map((inv) => (
+                  <tr key={inv.id} className="border-b border-line last:border-0">
+                    <td className="py-2.5 text-ink-600 whitespace-nowrap">
+                      {formatDate(inv.at) ?? "—"}
+                    </td>
+                    <td className="py-2.5 text-ink-700">{inv.description}</td>
+                    <td className="py-2.5 text-right tabular-nums text-ink-700">
+                      {rupeesFromPaise(inv.amountPaise)}
+                    </td>
+                    <td
+                      className={`py-2.5 text-right capitalize ${INVOICE_TONE[inv.status] ?? "text-ink-600"}`}
+                    >
+                      {inv.status}
+                    </td>
+                    <td className="py-2.5 text-right">
+                      {inv.invoiceUrl && (
+                        <a
+                          href={inv.invoiceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-accent hover:underline"
+                        >
+                          Receipt
+                        </a>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-ink-500">
+            No charges yet. Invoices appear here after your first payment.
+          </p>
+        )}
+      </div>
+
+      <ConfirmDialog
+        open={confirmCancel}
+        title="Cancel subscription?"
+        message="Your plan stays active until the end of the current billing period, then the account moves to the free limits. Your data is never deleted."
+        confirmLabel="Cancel plan"
+        loading={cancelling}
+        onConfirm={handleCancel}
+        onCancel={() => setConfirmCancel(false)}
+      />
     </div>
   );
 }

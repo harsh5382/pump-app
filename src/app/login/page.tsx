@@ -61,7 +61,7 @@ export default function LoginPage() {
             <br />
             every shift,
             <br />
-            <em className="text-ink-400 not-italic" style={{ fontStyle: "italic" }}>
+            <em className="text-ink-400 not-italic font-normal">
               accounted for.
             </em>
           </h2>

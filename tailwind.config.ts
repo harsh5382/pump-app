@@ -10,7 +10,11 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        serif: ["var(--font-serif)", "Georgia", "serif"],
+        display: ["var(--font-display)", "system-ui", "sans-serif"],
+        mono: ["var(--mono)", "ui-monospace", "monospace"],
+        // Alias kept so existing `font-serif` markup keeps working. Nothing in
+        // the project is serif any more — it resolves to the display sans.
+        serif: ["var(--font-display)", "system-ui", "sans-serif"],
       },
       colors: {
         bg: "var(--bg)",

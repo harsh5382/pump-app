@@ -55,12 +55,22 @@ export interface OrgSubscription {
   trialEndsAt?: string;
   currentPeriodEnd?: string;
   graceEndsAt?: string;
+  /** Set once the org has a provider subscription (paid or awaiting capture). */
+  providerSubscriptionId?: string;
+  /** Plan the owner is mid-checkout for. Grants nothing until paid. */
+  pendingPlanId?: string;
 }
 
 /**
  * Load an organisation's subscription. Falls back to the trial plan's
  * entitlements if the row is missing or has no snapshot, so the app degrades
  * to the most restrictive plan rather than to "unlimited".
+ *
+ * Two deadlines are evaluated at READ time rather than by a scheduler, so an
+ * expired trial or an elapsed grace period takes effect on the next request
+ * even if no cron ran and no webhook arrived:
+ *   trialing + trialEndsAt passed  -> past_due
+ *   grace_period + graceEndsAt passed -> suspended
  */
 export async function loadSubscription(
   organisationId: string,
@@ -79,13 +89,27 @@ export async function loadSubscription(
     };
   }
 
+  const stored = data.status as SubscriptionStatus;
+  const now = Date.now();
+  const expired = (iso?: string | null) =>
+    Boolean(iso) && new Date(iso as string).getTime() <= now;
+
+  let status = stored;
+  if (stored === "trialing" && expired(data.trial_ends_at)) {
+    status = "past_due";
+  } else if (stored === "grace_period" && expired(data.grace_ends_at)) {
+    status = "suspended";
+  }
+
   return {
     planId: data.plan_id,
-    status: data.status as SubscriptionStatus,
+    status,
     entitlements: (data.entitlements as Entitlements) ?? ENTITLEMENTS.trial,
     trialEndsAt: data.trial_ends_at ?? undefined,
     currentPeriodEnd: data.current_period_end ?? undefined,
     graceEndsAt: data.grace_ends_at ?? undefined,
+    providerSubscriptionId: data.provider_subscription_id ?? undefined,
+    pendingPlanId: data.pending_plan_id ?? undefined,
   };
 }
 

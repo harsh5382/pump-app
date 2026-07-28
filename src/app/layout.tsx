@@ -1,21 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Instrument_Serif } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { ClientProviders } from "@/components/ClientProviders";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans-google",
-  display: "swap",
-});
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
-  variable: "--font-serif-google",
-  display: "swap",
-});
+// Geist ships self-hosted via the `geist` package rather than next/font/google
+// (Next 14's Google font list predates its release). Both are variable fonts,
+// ~30kb each, served from our own origin — no request to fonts.gstatic.com.
+//
+// GeistSans carries all UI text and headings; GeistMono carries every figure.
+// The variables they expose are consumed in globals.css as --font-sans / --mono.
 
 export const metadata: Metadata = {
   title: "Petrol Pump Management System",
@@ -50,7 +44,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${instrumentSerif.variable}`}
+      className={`${GeistSans.variable} ${GeistMono.variable}`}
       suppressHydrationWarning
     >
       <body className="font-sans" suppressHydrationWarning>

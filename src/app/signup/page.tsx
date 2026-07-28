@@ -78,7 +78,7 @@ export default function SignUpPage() {
             <br />
             forecourt
             <br />
-            <em className="text-ink-400" style={{ fontStyle: "italic" }}>
+            <em className="text-ink-400 not-italic font-normal">
               in minutes.
             </em>
           </h2>
