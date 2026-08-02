@@ -12,3 +12,9 @@ public/icons/ChatGPT Image*.png
 # `supabase/` also matches src/lib/supabase/ and breaks the build.
 /supabase/
 /*.md
+
+# Local build output. Vercel builds from source, so these are never needed —
+# and a running dev server holds locks inside them, which made the CLI abort
+# with EPERM while walking the tree.
+/.next/
+/.next-preview/
