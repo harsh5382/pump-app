@@ -12,6 +12,10 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 });
 
 const nextConfig = {
+  // Two dev servers on one checkout deadlock fighting over the same build
+  // directory. Set NEXT_DIST_DIR to give a second instance its own; unset,
+  // this is the stock ".next".
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // Server runtime (Route Handlers / Server Actions + Firebase Admin SDK).
   // Previously "export" (static) — removed so trusted server operations can run.
   trailingSlash: true,

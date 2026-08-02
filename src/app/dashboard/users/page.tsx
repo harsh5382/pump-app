@@ -169,7 +169,8 @@ export default function UsersPage() {
             {users.map((u) => {
               const isEditingRow = editing?.uid === u.uid;
               return (
-                <li key={u.uid}>
+                // Keyed by mode as well as id — see the table below.
+                <li key={isEditingRow ? `${u.uid}-edit` : u.uid}>
                   {isEditingRow ? (
                     <div className="edit-card">
                       <p className="edit-card-title">Editing: {u.displayName}</p>
@@ -223,7 +224,12 @@ export default function UsersPage() {
                 {users.map((u) => {
                   const isEditingRow = editing?.uid === u.uid;
                   return (
-                    <tr key={u.uid}>
+                    // The key carries the mode so React replaces the row's
+                    // nodes instead of mutating them in place. Without it the
+                    // Edit button becomes a submit button on the very click
+                    // that opened the editor, and the browser runs that
+                    // button's activation — saving the row instantly.
+                    <tr key={isEditingRow ? `${u.uid}-edit` : u.uid}>
                       {isEditingRow ? (
                       <>
                         <td className="align-middle">

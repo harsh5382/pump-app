@@ -144,6 +144,7 @@ export default function ShiftsPage() {
           onChange={setDate}
           aria-label="Shift date"
           className="max-w-xs"
+          floatingLabel={false}
         />
       </div>
       <div className="card">
@@ -228,7 +229,8 @@ export default function ShiftsPage() {
             {shifts.map((s) => {
               const isEditingRow = editing?.id === s.id;
               return (
-                <li key={s.id}>
+                // Keyed by mode as well as id — see the table below.
+                <li key={isEditingRow ? `${s.id}-edit` : s.id}>
                   {isEditingRow ? (
                     <div className="edit-card">
                       <p className="edit-card-title">Editing: {s.staffName}</p>
@@ -300,7 +302,12 @@ export default function ShiftsPage() {
                 {shifts.map((s) => {
                   const isEditingRow = editing?.id === s.id;
                   return (
-                    <tr key={s.id}>
+                    // The key carries the mode so React replaces the row's
+                    // nodes instead of mutating them in place. Without it the
+                    // Edit button becomes a submit button on the very click
+                    // that opened the editor, and the browser runs that
+                    // button's activation — saving the row instantly.
+                    <tr key={isEditingRow ? `${s.id}-edit` : s.id}>
                       {isEditingRow ? (
                         <>
                           <td className="align-middle">

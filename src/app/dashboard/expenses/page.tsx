@@ -128,6 +128,7 @@ export default function ExpensesPage() {
           onChange={setDate}
           aria-label="Expense date"
           className="max-w-xs"
+          floatingLabel={false}
         />
       </div>
       <div className="card">
@@ -181,7 +182,7 @@ export default function ExpensesPage() {
       </div>
       <div className="card">
         <h2 className="card-header">Expenses for {formatDate(date)}</h2>
-        <p className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-4">
+        <p className="text-lg font-medium text-ink-700 mb-4">
           Total: {formatCurrency(total)}
         </p>
         {isMobile ? (
@@ -189,7 +190,8 @@ export default function ExpensesPage() {
             {expenses.map((e) => {
               const isEditingRow = editing?.id === e.id;
               return (
-                <li key={e.id}>
+                // Keyed by mode as well as id — see the table below.
+                <li key={isEditingRow ? `${e.id}-edit` : e.id}>
                   {isEditingRow ? (
                     <div className="edit-card">
                       <p className="edit-card-title">Editing expense</p>
@@ -247,7 +249,12 @@ export default function ExpensesPage() {
                   const isEditingRow = editing?.id === e.id;
                   const colSpan = isAdmin ? 4 : 3;
                   return (
-                    <tr key={e.id}>
+                    // The key carries the mode so React replaces the row's
+                    // nodes instead of mutating them in place. Without it the
+                    // Edit button becomes a submit button on the very click
+                    // that opened the editor, and the browser runs that
+                    // button's activation — saving the row instantly.
+                    <tr key={isEditingRow ? `${e.id}-edit` : e.id}>
                       {isEditingRow ? (
                         <>
                           <td className="align-middle">

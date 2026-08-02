@@ -1,0 +1,14 @@
+# Unreferenced source artwork. These are multi-megabyte originals that nothing
+# in the app imports — manifest.json uses only /icons/logo.png and layout.tsx
+# only /icons/icon-512.png. Uploading them stalled `vercel deploy` on a slow
+# uplink (10.9MB payload, aborted mid-transfer). They stay in git; they just
+# don't ship.
+public/icons/icon-192.png
+public/icons/favicon.png
+public/icons/LoDi-*.png
+public/icons/ChatGPT Image*.png
+
+# Local-only. Leading slash anchors to the repo root — an unanchored
+# `supabase/` also matches src/lib/supabase/ and breaks the build.
+/supabase/
+/*.md

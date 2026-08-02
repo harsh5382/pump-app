@@ -52,6 +52,19 @@ export function Avatar({
 /* ---------- Badge ---------- */
 type BadgeTone = "success" | "warn" | "danger" | "neutral" | "accent";
 
+/**
+ * Spelled out rather than built as `badge-${tone}`. Tailwind only keeps an
+ * `@layer components` rule if its class name appears literally in scanned
+ * source, so the interpolated form was purging every tone off the badge.
+ */
+const BADGE_TONE: Record<BadgeTone, string> = {
+  success: "badge-success",
+  warn: "badge-warn",
+  danger: "badge-danger",
+  neutral: "badge-neutral",
+  accent: "badge-accent",
+};
+
 export function Badge({
   tone = "neutral",
   dot = true,
@@ -62,7 +75,7 @@ export function Badge({
   children: React.ReactNode;
 }) {
   return (
-    <span className={cn("badge", `badge-${tone}`, !dot && "badge-no-dot")}>
+    <span className={cn("badge", BADGE_TONE[tone], !dot && "badge-no-dot")}>
       {children}
     </span>
   );
@@ -75,12 +88,15 @@ export function StatTile({
   note,
   tone,
   icon,
+  /** "text" for slots that hold a name — the mono face is for figures only. */
+  valueKind = "figure",
 }: {
   label: string;
   value: React.ReactNode;
   note?: React.ReactNode;
   tone?: "danger" | "success";
   icon?: React.ReactNode;
+  valueKind?: "figure" | "text";
 }) {
   return (
     <div
@@ -98,7 +114,7 @@ export function StatTile({
         {icon && <span className="text-ink-400">{icon}</span>}
       </div>
       <div
-        className="stat-value"
+        className={cn("stat-value", valueKind === "text" && "is-label")}
         style={tone === "danger" ? { color: "var(--danger)" } : undefined}
       >
         {value}

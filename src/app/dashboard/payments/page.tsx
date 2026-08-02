@@ -131,6 +131,7 @@ export default function PaymentsPage() {
           onChange={setDate}
           aria-label="Payment date"
           className="max-w-xs"
+          floatingLabel={false}
         />
       </div>
       <div className="card">
@@ -217,7 +218,8 @@ export default function PaymentsPage() {
             {payments.map((p) => {
               const isEditingRow = editing?.id === p.id;
               return (
-                <li key={p.id}>
+                // Keyed by mode as well as id — see the table below.
+                <li key={isEditingRow ? `${p.id}-edit` : p.id}>
                   {isEditingRow ? (
                     <div className="edit-card">
                       <p className="edit-card-title">Editing payment</p>
@@ -274,7 +276,12 @@ export default function PaymentsPage() {
                 {payments.map((p) => {
                   const isEditingRow = editing?.id === p.id;
                   return (
-                    <tr key={p.id}>
+                    // The key carries the mode so React replaces the row's
+                    // nodes instead of mutating them in place. Without it the
+                    // Edit button becomes a submit button on the very click
+                    // that opened the editor, and the browser runs that
+                    // button's activation — saving the row instantly.
+                    <tr key={isEditingRow ? `${p.id}-edit` : p.id}>
                       {isEditingRow ? (
                         <>
                           <td className="align-middle">

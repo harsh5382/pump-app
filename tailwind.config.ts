@@ -37,6 +37,21 @@ const config: Config = {
         },
         line: "var(--border)",
         "line-strong": "var(--border-strong)",
+        // Status colours existed as CSS variables but had no Tailwind bridge,
+        // so pages reached for `text-green-600` / `text-red-600` instead and
+        // drifted off the palette.
+        success: {
+          DEFAULT: "var(--success)",
+          soft: "var(--success-soft)",
+        },
+        warn: {
+          DEFAULT: "var(--warn)",
+          soft: "var(--warn-soft)",
+        },
+        danger: {
+          DEFAULT: "var(--danger)",
+          soft: "var(--danger-soft)",
+        },
         fuel: {
           petrol: "#eab308",
           diesel: "#1e293b",

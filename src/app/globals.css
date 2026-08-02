@@ -106,6 +106,19 @@ body {
   font-weight: 500;
 }
 
+/* Units ride alongside a figure but stay in the sans face — a monospaced "L"
+   or "kL" sits in a full digit-width cell and reads as a gap. */
+.num .unit,
+.mono .unit,
+.stat-value .unit {
+  font-family: var(--font-sans);
+  font-size: 0.76em;
+  font-weight: 500;
+  color: var(--ink-500);
+  margin-left: 0.3em;
+  letter-spacing: 0;
+}
+
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--ink-200); border-radius: 10px; border: 2px solid var(--bg); }
@@ -160,6 +173,25 @@ body {
     border: 1px solid transparent;
   }
   .btn:active { transform: translateY(0.5px); }
+  /* One focus ring for every button variant: a hairline of page colour so the
+     accent reads against both light and filled buttons. */
+  .btn:focus-visible, .icon-btn:focus-visible {
+    @apply outline-none;
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  }
+  /* Disabled had no treatment at all, so a blocked action looked live. */
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn:disabled:hover { filter: none; }
+  .btn:disabled:active { transform: none; }
+  .btn-ghost:disabled:hover,
+  .btn-secondary:disabled:hover {
+    background: transparent;
+    border-color: var(--border);
+  }
+  .btn-soft:disabled:hover { background: var(--bg-sunken); }
   .btn-primary {
     background: var(--accent);
     color: var(--accent-ink);
@@ -210,7 +242,16 @@ body {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-soft);
   }
-  select.input { @apply appearance-none; }
+  /* `appearance-none` strips the native arrow, so the affordance has to be put
+     back — otherwise a select is indistinguishable from a text input. */
+  select.input {
+    @apply appearance-none pr-9;
+    background-color: var(--bg-elev);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 11px center;
+    background-size: 15px 15px;
+  }
   .input-lg { @apply h-12 text-[15px]; }
   .textarea {
     @apply w-full px-3 py-2.5 rounded-[10px] transition-all resize-y;
@@ -247,6 +288,17 @@ body {
   .table tbody tr { @apply transition-colors; }
   .table tbody tr:hover { background: var(--bg-overlay); }
   .table tbody tr:last-child td { border-bottom: none; }
+  /* Numeric columns align right in every band, header included. Two classes so
+     this wins over the `text-left` baked into `.table thead th`. */
+  .table th.cell-num,
+  .table td.cell-num { text-align: right; }
+  /* Totals row: separated by a heavier rule and set in full ink so it reads as
+     a conclusion rather than one more record. */
+  .table tfoot td {
+    @apply px-3 py-3 font-medium;
+    color: var(--ink-900);
+    border-top: 1px solid var(--border-strong);
+  }
   .table-container { @apply overflow-x-auto -mx-1; }
 
   /* ---- Badge ---- */
@@ -286,6 +338,12 @@ body {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
   }
+  /* Some stat slots hold a name rather than a number — those are not mono. */
+  .stat-value.is-label {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
   .stat-delta {
     @apply flex items-center gap-1.5 text-xs;
     color: var(--ink-500);
@@ -309,8 +367,13 @@ body {
     background: var(--bg-sunken);
   }
   .seg button {
-    @apply px-3.5 py-1.5 text-xs font-medium rounded-[7px] transition-all;
+    @apply px-3.5 py-1.5 text-xs font-medium rounded-[7px] transition-all whitespace-nowrap;
     color: var(--ink-500);
+  }
+  .seg button:hover:not(.on) { color: var(--ink-900); }
+  .seg button:focus-visible {
+    @apply outline-none;
+    box-shadow: 0 0 0 2px var(--accent);
   }
   .seg button.on {
     background: var(--bg-elev);
@@ -342,6 +405,10 @@ body {
     border: 1px solid #f0dcb0;
   }
   .edit-card-title { @apply text-sm font-medium; color: var(--ink-700); }
+  /* Hints are 11px, and the neutral grey they inherit lands at 4.2:1 on the
+     amber card. Tint from the card's own hue instead — the same warm ink the
+     banners use. */
+  .edit-card .field-hint { color: #78350f; }
 
   /* ---- Mobile list card ---- */
   .mobile-list-card {
@@ -355,10 +422,29 @@ body {
     color: var(--ink-900);
   }
   .mobile-list-card-row { @apply text-sm py-1; color: var(--ink-500); }
+  .mobile-list-card-total { background: var(--bg-sunken); }
+  .mobile-list-card-total .mobile-list-card-row { color: var(--ink-700); }
   .mobile-list-card-actions {
     @apply flex gap-2 pt-3 mt-2;
     border-top: 1px solid var(--border);
   }
+
+  /* ---- Capacity gauge ----
+     A tank row already shows stock and capacity; the gauge shows the one thing
+     the two numbers together mean — how full it is — without a second read. */
+  /* Fixed width, not fluid: gauges are only readable against each other if
+     every track in a column is the same length. */
+  .gauge {
+    @apply overflow-hidden rounded-full shrink-0;
+    width: 112px;
+    height: 3px;
+    background: var(--ink-100);
+  }
+  .gauge-fill {
+    @apply h-full rounded-full;
+    background: var(--accent);
+  }
+  .gauge-fill.is-low { background: var(--danger); }
 
   /* ---- Divider ---- */
   .divider { @apply w-full; height: 1px; background: var(--border); }
@@ -410,6 +496,35 @@ body {
     color: var(--ink-500);
   }
   .btn-icon-delete:hover { background: var(--danger-soft); color: var(--danger); }
+  /* The edit twin of the above. It was being hand-rolled per page with raw
+     slate utilities, which is how the dark-mode variants got in. */
+  .btn-icon-edit {
+    @apply p-1.5 rounded-lg transition-colors;
+    color: var(--ink-500);
+  }
+  .btn-icon-edit:hover { background: var(--bg-overlay); color: var(--accent); }
+  /* The icon family had no disabled treatment, so a blocked row action looked
+     as live as an available one. */
+  .btn-icon-primary:disabled,
+  .btn-icon-cancel:disabled,
+  .btn-icon-delete:disabled,
+  .btn-icon-edit:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .btn-icon-primary:disabled:hover { filter: none; }
+  .btn-icon-cancel:disabled:hover { background: var(--bg-sunken); }
+  .btn-icon-delete:disabled:hover,
+  .btn-icon-edit:disabled:hover { background: transparent; color: var(--ink-500); }
+  /* Row actions are keyboard-reachable, so they need the same visible ring the
+     rest of the button family gets. */
+  .btn-icon-primary:focus-visible,
+  .btn-icon-cancel:focus-visible,
+  .btn-icon-delete:focus-visible,
+  .btn-icon-edit:focus-visible {
+    @apply outline-none;
+    box-shadow: 0 0 0 2px var(--bg-elev), 0 0 0 4px var(--accent);
+  }
 }
 
 /* ==================== Date picker (react-day-picker + MUI) — amber, light ==================== */

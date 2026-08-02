@@ -20,6 +20,16 @@ export function formatNumber(n: number, decimals = 2): string {
   }).format(n);
 }
 
+/**
+ * Local calendar date as `yyyy-MM-dd`. `toISOString()` is UTC and rolls the day
+ * over early in IST, so "today" would be tomorrow's date after 5:30pm.
+ */
+export function isoLocal(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate(),
+  ).padStart(2, "0")}`;
+}
+
 export function formatDate(d: string): string {
   return new Date(d).toLocaleDateString("en-IN", {
     day: "2-digit",

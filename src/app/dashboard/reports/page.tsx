@@ -1,68 +1,95 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { FileSpreadsheet, FileText, RefreshCw } from "lucide-react";
 import {
-  getMeterReadingsDateRange,
-  getTankerDeliveriesDateRange,
-  getPaymentsDateRange,
   getExpensesDateRange,
-  getShiftsDateRange,
-  getNozzles,
   getFuelTypes,
-  getTanks,
+  getMeterReadingsDateRange,
+  getNozzles,
+  getPaymentsDateRange,
+  getShiftsDateRange,
+  getTankerDeliveriesDateRange,
 } from "@/lib/db";
-import type {
-  MeterReading,
-  TankerDelivery,
-  PaymentEntry,
-  Expense,
-  StaffShift,
-} from "@/types";
-import { formatCurrency, formatNumber, formatDate } from "@/lib/utils";
+import { useOrg } from "@/context/OrgContext";
+import { useToast } from "@/components/ui/Toast";
+import { EmptyState } from "@/components/ui";
+import { formatDate, isoLocal } from "@/lib/utils";
 import { exportToExcel, exportToPdf } from "@/lib/exportReport";
 import DatePicker from "@/components/DatePicker";
 import FuelLoader from "@/components/FuelLoader";
+import ReportResult from "./ReportResult";
+import {
+  buildReport,
+  REPORT_TYPES,
+  SALES_REPORTS,
+  toPdfRows,
+  toSheetRows,
+  type ReportData,
+  type ReportType,
+} from "./reportModel";
 
-type ReportType = "daily" | "monthly" | "fuel_sale" | "staff" | "expense";
+const TODAY = isoLocal(new Date());
+
+const PRESETS = [
+  { key: "today", label: "Today" },
+  { key: "week", label: "Last 7 days" },
+  { key: "month", label: "This month" },
+  { key: "lastMonth", label: "Last month" },
+] as const;
+
+type PresetKey = (typeof PRESETS)[number]["key"];
+
+function presetRange(key: PresetKey): [string, string] {
+  const now = new Date();
+  switch (key) {
+    case "today":
+      return [isoLocal(now), isoLocal(now)];
+    case "week": {
+      const from = new Date(now);
+      from.setDate(from.getDate() - 6);
+      return [isoLocal(from), isoLocal(now)];
+    }
+    case "lastMonth": {
+      const from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const to = new Date(now.getFullYear(), now.getMonth(), 0);
+      return [isoLocal(from), isoLocal(to)];
+    }
+    case "month":
+    default:
+      return [isoLocal(new Date(now.getFullYear(), now.getMonth(), 1)), isoLocal(now)];
+  }
+}
 
 export default function ReportsPage() {
+  const toast = useToast();
+  const { hasCapability, loading: orgLoading } = useOrg();
+
   const [reportType, setReportType] = useState<ReportType>("daily");
-  const [startDate, setStartDate] = useState(() => {
-    const d = new Date();
-    d.setDate(1);
-    return d.toISOString().split("T")[0];
-  });
-  const [endDate, setEndDate] = useState(
-    new Date().toISOString().split("T")[0],
+  const [[startDate, endDate], setRange] = useState<[string, string]>(() =>
+    presetRange("month"),
   );
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<{
-    readings?: MeterReading[];
-    deliveries?: TankerDelivery[];
-    payments?: PaymentEntry[];
-    expenses?: Expense[];
-    shifts?: StaffShift[];
-  }>({});
-  const [nozzles, setNozzles] = useState<
-    { id: string; machineNumber: string; fuelTypeId: string }[]
-  >([]);
-  const [fuelTypes, setFuelTypes] = useState<{ id: string; name: string }[]>(
-    [],
-  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<"excel" | "pdf" | null>(null);
+  const [data, setData] = useState<ReportData>({});
+  const [nozzles, setNozzles] = useState<{ id: string; fuelTypeId: string }[]>([]);
+  const [fuelTypes, setFuelTypes] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
-    getNozzles().then(setNozzles);
-    getFuelTypes().then(setFuelTypes);
+    getNozzles()
+      .then(setNozzles)
+      .catch(() => setNozzles([]));
+    getFuelTypes()
+      .then(setFuelTypes)
+      .catch(() => setFuelTypes([]));
   }, []);
 
   const loadReport = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      if (
-        reportType === "daily" ||
-        reportType === "monthly" ||
-        reportType === "fuel_sale"
-      ) {
+      if (SALES_REPORTS.includes(reportType)) {
         const [readings, deliveries, payments] = await Promise.all([
           getMeterReadingsDateRange(startDate, endDate),
           getTankerDeliveriesDateRange(startDate, endDate),
@@ -70,12 +97,17 @@ export default function ReportsPage() {
         ]);
         setData({ readings, deliveries, payments });
       } else if (reportType === "staff") {
-        const shifts = await getShiftsDateRange(startDate, endDate);
-        setData({ shifts });
+        setData({ shifts: await getShiftsDateRange(startDate, endDate) });
       } else {
-        const expenses = await getExpensesDateRange(startDate, endDate);
-        setData({ expenses });
+        setData({ expenses: await getExpensesDateRange(startDate, endDate) });
       }
+    } catch (err) {
+      setData({});
+      setError(
+        err instanceof Error
+          ? err.message
+          : "The report could not be loaded. Check your connection and try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -85,279 +117,208 @@ export default function ReportsPage() {
     loadReport();
   }, [loadReport]);
 
-  const fuelSoldByType: Record<string, number> = {};
-  data.readings?.forEach((r) => {
-    const nozzle = nozzles.find((n) => n.id === r.nozzleId);
-    if (nozzle) {
-      const name =
-        fuelTypes.find((f) => f.id === nozzle.fuelTypeId)?.name ?? "Unknown";
-      fuelSoldByType[name] = (fuelSoldByType[name] ?? 0) + (r.fuelSold ?? 0);
-    }
-  });
+  const model = useMemo(
+    () => buildReport(reportType, data, { nozzles, fuelTypes }),
+    [reportType, data, nozzles, fuelTypes],
+  );
 
-  function handleExportExcel() {
-    if (
-      reportType === "fuel_sale" ||
-      reportType === "daily" ||
-      reportType === "monthly"
-    ) {
-      const rows = Object.entries(fuelSoldByType).map(([name, liters]) => ({
-        "Fuel Type": name,
-        "Sold (L)": liters,
-      }));
-      if (data.payments?.length) {
-        const totalPayments = data.payments.reduce((s, p) => s + p.amount, 0);
-        rows.push({ "Fuel Type": "Total Revenue", "Sold (L)": totalPayments });
+  const activePreset = PRESETS.find((p) => {
+    const [from, to] = presetRange(p.key);
+    return from === startDate && to === endDate;
+  })?.key;
+
+  const rangeLabel =
+    startDate === endDate
+      ? formatDate(startDate)
+      : `${formatDate(startDate)} – ${formatDate(endDate)}`;
+
+  const canExport = orgLoading || hasCapability("report.export");
+  const hasRows = model.rows.length > 0;
+  const exportBlocked = !canExport
+    ? "Your role cannot export reports."
+    : !hasRows
+      ? "There is nothing to export in this period."
+      : undefined;
+
+  async function handleExport(kind: "excel" | "pdf") {
+    if (exportBlocked) return;
+    const filename = `${reportType.replace("_", "-")}-${startDate}-to-${endDate}`;
+    setExporting(kind);
+    try {
+      if (kind === "excel") {
+        // Sheet cells are bare numbers, so the unit rides in the header.
+        exportToExcel(toSheetRows(model), model.label, filename);
+      } else {
+        // PDF cells keep their unit inline, so plain headers are correct here.
+        await exportToPdf(
+          `${model.label} — ${rangeLabel}`,
+          model.columns.map((c) => c.label),
+          toPdfRows(model),
+          filename,
+        );
       }
-      exportToExcel(rows, "Fuel Sale", `fuel-sale-${startDate}-${endDate}`);
-    } else if (reportType === "staff" && data.shifts?.length) {
-      const rows = data.shifts.map((s) => ({
-        Date: s.date,
-        "Staff Name": s.staffName,
-        "Shift Start": s.shiftStart,
-        "Shift End": s.shiftEnd,
-        "Cash Collected": s.cashCollected,
-      }));
-      exportToExcel(rows, "Staff Report", `staff-${startDate}-${endDate}`);
-    } else if (reportType === "expense" && data.expenses?.length) {
-      const rows = data.expenses.map((e) => ({
-        Date: e.date,
-        Category: e.category,
-        Amount: e.amount,
-        Description: e.description,
-      }));
-      exportToExcel(rows, "Expense Report", `expense-${startDate}-${endDate}`);
-    }
-  }
-
-  function handleExportPdf() {
-    if (
-      reportType === "fuel_sale" ||
-      reportType === "daily" ||
-      reportType === "monthly"
-    ) {
-      const headers = ["Fuel Type", "Sold (L)"];
-      const rows = Object.entries(fuelSoldByType).map(([name, liters]) => [
-        name,
-        formatNumber(liters),
-      ]);
-      const totalPayments =
-        data.payments?.reduce((s, p) => s + p.amount, 0) ?? 0;
-      if (totalPayments > 0)
-        rows.push(["Total Revenue", formatCurrency(totalPayments)]);
-      exportToPdf(
-        `Fuel Sale Report ${startDate} to ${endDate}`,
-        headers,
-        rows,
-        `fuel-sale-${startDate}-${endDate}`,
+      toast.success(
+        `${kind === "excel" ? "Excel" : "PDF"} export saved as ${filename}.${
+          kind === "excel" ? "xlsx" : "pdf"
+        }`,
       );
-    } else if (reportType === "staff" && data.shifts?.length) {
-      const headers = ["Date", "Staff", "Shift", "Cash"];
-      const rows = data.shifts.map((s) => [
-        s.date,
-        s.staffName,
-        `${s.shiftStart}-${s.shiftEnd}`,
-        formatCurrency(s.cashCollected),
-      ]);
-      exportToPdf(
-        `Staff Report ${startDate} to ${endDate}`,
-        headers,
-        rows,
-        `staff-${startDate}-${endDate}`,
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "The export could not be generated. Try again.",
       );
-    } else if (reportType === "expense" && data.expenses?.length) {
-      const headers = ["Date", "Category", "Amount", "Description"];
-      const rows = data.expenses.map((e) => [
-        e.date,
-        e.category,
-        formatCurrency(e.amount),
-        e.description,
-      ]);
-      exportToPdf(
-        `Expense Report ${startDate} to ${endDate}`,
-        headers,
-        rows,
-        `expense-${startDate}-${endDate}`,
-      );
+    } finally {
+      setExporting(null);
     }
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="page-title">Reports</h1>
-      <div className="card flex flex-wrap gap-4 items-end">
+    <div className="page">
+      <div className="page-head">
         <div>
-          <label htmlFor="report-type" className="label">
-            Report type
-          </label>
-          <select
-            id="report-type"
-            className="input min-w-[180px]"
-            value={reportType}
-            onChange={(e) => setReportType(e.target.value as ReportType)}
-            aria-label="Report type"
-          >
-            <option value="daily">Daily Report</option>
-            <option value="monthly">Monthly Report</option>
-            <option value="fuel_sale">Fuel Sale Report</option>
-            <option value="staff">Staff Report</option>
-            <option value="expense">Expense Report</option>
-          </select>
-        </div>
-        <div>
-          <label htmlFor="report-from" className="label">
-            From
-          </label>
-          <DatePicker
-            id="report-from"
-            value={startDate}
-            onChange={setStartDate}
-            aria-label="Report start date"
-          />
-        </div>
-        <div>
-          <label htmlFor="report-to" className="label">
-            To
-          </label>
-          <DatePicker
-            id="report-to"
-            value={endDate}
-            onChange={setEndDate}
-            aria-label="Report end date"
-          />
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={loadReport}
-            disabled={loading}
-          >
-            {loading ? "Loading…" : "Refresh"}
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={handleExportExcel}
-          >
-            Export Excel
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={handleExportPdf}
-          >
-            Export PDF
-          </button>
+          {/* The topbar already says "Reports", so the page heading carries the
+              thing that actually changes: which report, over which dates. */}
+          <h1 className="page-title">
+            {model.label} <em>— {rangeLabel}</em>
+          </h1>
+          <p className="page-sub">
+            {REPORT_TYPES.find((r) => r.value === reportType)?.blurb}
+          </p>
         </div>
       </div>
 
-      {loading ? (
-        <div className="card flex justify-center py-12 min-h-[200px]">
-          <FuelLoader size="sm" className="py-0 min-h-0" />
+      <div className="card mb-6 sm:mb-8">
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="field w-full sm:w-[210px]">
+            <label htmlFor="report-type" className="label">
+              Report type
+            </label>
+            <select
+              id="report-type"
+              className="input"
+              value={reportType}
+              onChange={(e) => setReportType(e.target.value as ReportType)}
+            >
+              {REPORT_TYPES.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="field w-[calc(50%-0.5rem)] sm:w-[170px]">
+            <label htmlFor="report-from" className="label">
+              From
+            </label>
+            <DatePicker
+              id="report-from"
+              value={startDate}
+              onChange={(v) => setRange([v, endDate])}
+              max={endDate}
+              floatingLabel={false}
+            />
+          </div>
+
+          <div className="field w-[calc(50%-0.5rem)] sm:w-[170px]">
+            <label htmlFor="report-to" className="label">
+              To
+            </label>
+            <DatePicker
+              id="report-to"
+              value={endDate}
+              onChange={(v) => setRange([startDate, v])}
+              min={startDate}
+              max={TODAY}
+              floatingLabel={false}
+            />
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
+            <button
+              type="button"
+              className="btn btn-ghost min-h-[44px] sm:min-h-0"
+              onClick={loadReport}
+              disabled={loading}
+              aria-label="Reload this report"
+              title="Reload this report"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                aria-hidden
+              />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary flex-1 sm:flex-none min-h-[44px] sm:min-h-0"
+              onClick={() => handleExport("excel")}
+              disabled={Boolean(exportBlocked) || loading || exporting !== null}
+              title={exportBlocked ?? "Download this report as an Excel file"}
+            >
+              <FileSpreadsheet className="h-4 w-4" aria-hidden />
+              {exporting === "excel" ? "Preparing…" : "Excel"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost flex-1 sm:flex-none min-h-[44px] sm:min-h-0"
+              onClick={() => handleExport("pdf")}
+              disabled={Boolean(exportBlocked) || loading || exporting !== null}
+              title={exportBlocked ?? "Download this report as a PDF"}
+            >
+              <FileText className="h-4 w-4" aria-hidden />
+              {exporting === "pdf" ? "Preparing…" : "PDF"}
+            </button>
+          </div>
         </div>
-      ) : (
-        <div className="card">
-          <h2 className="card-header">
-            {reportType === "daily" && "Daily"}
-            {reportType === "monthly" && "Monthly"}
-            {reportType === "fuel_sale" && "Fuel Sale"}
-            {reportType === "staff" && "Staff"}
-            {reportType === "expense" && "Expense"} Report ({startDate} –{" "}
-            {endDate})
-          </h2>
-          {(reportType === "daily" ||
-            reportType === "monthly" ||
-            reportType === "fuel_sale") && (
-            <>
-              <h3 className="font-medium mt-4">Fuel sold by type</h3>
-              <ul className="list-disc list-inside my-2">
-                {Object.entries(fuelSoldByType).map(([name, liters]) => (
-                  <li key={name}>
-                    {name}: {formatNumber(liters)} L
-                  </li>
-                ))}
-              </ul>
-              {data.payments && data.payments.length > 0 && (
-                <>
-                  <h3 className="font-medium mt-4">Total revenue</h3>
-                  <p className="text-xl font-bold text-accent">
-                    {formatCurrency(
-                      data.payments.reduce((s, p) => s + p.amount, 0),
-                    )}
-                  </p>
-                </>
-              )}
-              {data.deliveries && data.deliveries.length > 0 && (
-                <>
-                  <h3 className="font-medium mt-4">Tanker deliveries</h3>
-                  <p>
-                    {data.deliveries.length} delivery(ies),{" "}
-                    {formatNumber(
-                      data.deliveries.reduce((s, d) => s + d.quantityLiters, 0),
-                    )}{" "}
-                    L total
-                  </p>
-                </>
-              )}
-            </>
-          )}
-          {reportType === "staff" && data.shifts && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left">
-                    <th className="pb-2 font-medium">Date</th>
-                    <th className="pb-2 font-medium">Staff</th>
-                    <th className="pb-2 font-medium">Shift</th>
-                    <th className="pb-2 font-medium">Cash</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.shifts.map((s) => (
-                    <tr key={s.id} className="border-b border-slate-100">
-                      <td className="py-2">{s.date}</td>
-                      <td className="py-2">{s.staffName}</td>
-                      <td className="py-2">
-                        {s.shiftStart} – {s.shiftEnd}
-                      </td>
-                      <td className="py-2">
-                        {formatCurrency(s.cashCollected)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {reportType === "expense" && data.expenses && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left">
-                    <th className="pb-2 font-medium">Date</th>
-                    <th className="pb-2 font-medium">Category</th>
-                    <th className="pb-2 font-medium">Amount</th>
-                    <th className="pb-2 font-medium">Description</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.expenses.map((e) => (
-                    <tr key={e.id} className="border-b border-slate-100">
-                      <td className="py-2">{e.date}</td>
-                      <td className="py-2 capitalize">
-                        {e.category.replace("_", " ")}
-                      </td>
-                      <td className="py-2">{formatCurrency(e.amount)}</td>
-                      <td className="py-2">{e.description}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+
+        <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-2 mt-5 pt-5 border-t border-line">
+          <span className="label shrink-0">Quick range</span>
+          {/* Two-up on a phone, one row from sm — the strip never scrolls away. */}
+          <div className="seg flex w-full flex-wrap sm:inline-flex sm:w-auto sm:flex-nowrap">
+            {PRESETS.map((preset) => (
+              <button
+                key={preset.key}
+                type="button"
+                className={`grow basis-[calc(50%-1px)] sm:grow-0 sm:basis-auto min-h-[36px] sm:min-h-0 ${
+                  activePreset === preset.key ? "on" : ""
+                }`}
+                aria-pressed={activePreset === preset.key}
+                onClick={() => setRange(presetRange(preset.key))}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="banner banner-danger">
+          <span className="flex-1">{error}</span>
+          <button type="button" className="btn btn-sm btn-ghost" onClick={loadReport}>
+            Try again
+          </button>
         </div>
       )}
+
+      <div aria-live="polite" aria-busy={loading}>
+        {loading ? (
+          <div className="card min-h-[300px] flex items-center justify-center">
+            <FuelLoader size="sm" className="py-0 min-h-0" label="Building report" />
+          </div>
+        ) : error ? (
+          <div className="card">
+            <EmptyState
+              title="Report unavailable"
+              hint="Resolve the error above, then try again."
+            />
+          </div>
+        ) : (
+          <ReportResult model={model} />
+        )}
+      </div>
     </div>
   );
 }

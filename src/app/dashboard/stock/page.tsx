@@ -46,6 +46,7 @@ export default function StockPage() {
           onChange={setDate}
           aria-label="Stock date"
           className="max-w-xs"
+          floatingLabel={false}
         />
       </div>
       <div className="card">

@@ -96,9 +96,12 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
 
   // Expose the resolved outlet to the client data layer (db.ts / audit.ts),
   // which scopes every query by it. Cleared on sign-out (resolvedOutletId null).
-  useEffect(() => {
-    setActiveOutletId(resolvedOutletId);
-  }, [resolvedOutletId]);
+  //
+  // Synced during render, not in an effect: React flushes a child's effects
+  // before its parent's, so any page that queries on mount would fire before
+  // this provider's effect and fail with "no outlet selected". The target is a
+  // plain module variable, so assigning it during render is idempotent.
+  setActiveOutletId(resolvedOutletId);
 
   const setCurrentOrg = useCallback((organisationId: string) => {
     setCurrentOrgId(organisationId);

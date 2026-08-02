@@ -12,6 +12,11 @@ export type DatePickerProps = {
   placeholder?: string;
   min?: string;
   max?: string;
+  /**
+   * MUI's own floating label. Turn it off wherever the field already sits under
+   * a visible `.label` — otherwise the two collide over the top border.
+   */
+  floatingLabel?: boolean;
 };
 
 function toDate(str: string): Date | null {
@@ -46,6 +51,7 @@ export default function DatePicker({
   placeholder = "Select date",
   min,
   max,
+  floatingLabel = true,
 }: DatePickerProps) {
   const dateValue = toDate(value);
   const minDate = min ? toDate(min) : null;
@@ -54,7 +60,10 @@ export default function DatePicker({
   return (
     <div className={`date-picker-root ${className}`.trim()}>
       <MuiDatePicker
-        label={placeholder}
+        label={floatingLabel ? placeholder : undefined}
+        // The adapter defaults to en-US (MM/DD/YYYY). Everything else in the
+        // product formats en-IN, so 08/01 has to mean 8 January here too.
+        format="dd/MM/yyyy"
         value={dateValue}
         onChange={(d) => onChange(d ? toValue(d) : "")}
         minDate={minDate ?? undefined}

@@ -137,8 +137,13 @@ export default function FuelTypesPage() {
         ) : (
           <ul className="space-y-2">
             {list.map((f) => (
+              // The key carries the mode so React replaces the row's nodes
+              // instead of mutating them in place. Without it the Edit button
+              // becomes a submit button on the very click that opened the
+              // editor, and the browser runs that button's activation —
+              // saving the row instantly.
               <li
-                key={f.id}
+                key={editing?.id === f.id ? `${f.id}-edit` : f.id}
                 className="py-2 border-b border-slate-100 last:border-0"
               >
                 {editing?.id === f.id ? (

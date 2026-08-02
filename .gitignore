@@ -5,6 +5,8 @@ node_modules
 
 # Build
 .next
+# Alternate dist dir for a second dev server (NEXT_DIST_DIR)
+.next-preview
 out
 build
 dist
@@ -48,3 +50,4 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+.env*
